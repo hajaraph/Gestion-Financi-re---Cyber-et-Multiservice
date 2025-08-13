@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary Colors */
+  --primary-color: #1976d2;
+  --primary-light: #42a5f5;
+  --primary-dark: #1565c0;
+
+  /* Secondary Colors */
+  --secondary-color: #9c27b0;
+  --secondary-light: #ba68c8;
+  --secondary-dark: #7b1fa2;
+
+  /* Success Colors */
+  --success-color: #2e7d32;
+  --success-light: #4caf50;
+  --success-dark: #1b5e20;
+
+  /* Warning Colors */
+  --warning-color: #ed6c02;
+  --warning-light: #ff9800;
+  --warning-dark: #e65100;
+
+  /* Danger Colors */
+  --danger-color: #d32f2f;
+  --danger-light: #ef5350;
+  --danger-dark: #c62828;
+
+  /* Info Colors */
+  --info-color: #0288d1;
+  --info-light: #03a9f4;
+  --info-dark: #01579b;
+
+  /* Grayscale */
+  --dark-color: #343a40;
+  --light-color: #f8f9fa;
+}
+
+/* Animations globales */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Classes d'animation globales */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

@@ -511,6 +511,122 @@ export const servicePersonnaliseAPI = {
   }
 };
 
+// Services pour la gestion des stocks
+export const stockAPI = {
+  // Récupérer tous les stocks
+  getAll: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/stocks/', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error fetching stocks:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Récupérer un stock par ID
+  getById: async (id) => {
+    try {
+      const response = await apiClient.get(`/api/stocks/${id}/`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error(`Error fetching stock ${id}:`, error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Créer un nouveau produit en stock
+  createProduct: async (productData) => {
+    try {
+      const response = await apiClient.post('/api/stocks/', productData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error creating stock product:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Mettre à jour un produit en stock
+  updateProduct: async (id, productData) => {
+    try {
+      const response = await apiClient.patch(`/api/stocks/${id}/`, productData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error(`Error updating stock product ${id}:`, error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Supprimer un produit du stock
+  deleteProduct: async (id) => {
+    try {
+      await apiClient.delete(`/api/stocks/${id}/`);
+      return { success: true };
+    } catch (error) {
+      console.error(`Error deleting stock product ${id}:`, error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Créer un mouvement de stock
+  createMovement: async (movementData) => {
+    try {
+      const response = await apiClient.post('/api/mouvements-stock/', movementData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error creating stock movement:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Récupérer l'historique des mouvements de stock
+  getMovementHistory: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/mouvements-stock/', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error fetching stock movements:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Récupérer les statistiques de stock
+  getStats: async () => {
+    try {
+      const response = await apiClient.get('/api/stocks/stats/');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error fetching stock stats:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Générer un rapport de stock
+  generateReport: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/stocks/generate-report/', { 
+        params,
+        responseType: 'blob' 
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error generating stock report:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+
+  // Vérifier les alertes de stock (rupture, seuil bas)
+  checkStockAlerts: async () => {
+    try {
+      const response = await apiClient.get('/api/stocks/check-alerts/');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error checking stock alerts:', error);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  }
+};
+
 // Export de l'instance Axios pour des cas spéciaux
 export { apiClient };
 

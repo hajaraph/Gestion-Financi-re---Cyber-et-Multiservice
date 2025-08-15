@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import TarifsPage from './components/TarifsPage';
 import RecettesPage from './components/RecettesPage';
+import StockPage from './components/StockPage';
 import { authAPI } from './services/api';
 
 // Composants de pages (à créer)
@@ -147,6 +148,11 @@ function App() {
             <Route path="/tarifs" element={
               <MainLayout>
                 <TarifsPage />
+              </MainLayout>
+            } />
+            <Route path="/stock" element={
+              <MainLayout>
+                <StockPage />
               </MainLayout>
             } />
             <Route path="/categories" element={

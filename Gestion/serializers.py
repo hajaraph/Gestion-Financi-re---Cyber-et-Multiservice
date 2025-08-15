@@ -4,7 +4,7 @@ from .models import (
     CategorieService, TypeTransaction, Transaction,
     RecetteInternet, RecetteMultiservice, Depense, TypePapier,
     TarifService, VenteProduit, ServicePersonnalise, PalierRemise,
-    Permission, Role, ProfilUtilisateur
+    Permission, Role, ProfilUtilisateur, Stock, MouvementStock
 )
 
 class CategorieServiceSerializer(serializers.ModelSerializer):
@@ -643,33 +643,158 @@ class TypePapierSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['date_creation', 'date_modification']
 
-class BaseCreateSerializer:
-    """Classe utilitaire pour éviter la duplication dans les serializers de création"""
+class StockSerializer(serializers.ModelSerializer):
+    """Serializer pour la gestion des stocks"""
+    type_papier_nom = serializers.CharField(source='type_papier.nom', read_only=True)
+    valeur_stock_achat = serializers.ReadOnlyField()
+    valeur_stock_vente = serializers.ReadOnlyField()
+    est_en_rupture = serializers.ReadOnlyField()
+    necessite_reapprovisionnement = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Stock
+        fields = [
+            'id', 'nom_produit', 'code_produit', 'description',
+            'quantite_actuelle', 'quantite_minimale', 'quantite_maximale',
+            'unite_mesure', 'prix_unitaire_achat', 'prix_unitaire_vente',
+            'quantite_par_paquet', 'est_vendu_unite',
+            'type_papier', 'type_papier_nom', 'fournisseur', 'emplacement', 'actif',
+            'valeur_stock_achat', 'valeur_stock_vente', 'est_en_rupture', 'necessite_reapprovisionnement',
+            'date_creation', 'date_modification', 'date_derniere_entree', 'date_derniere_sortie'
+        ]
+        read_only_fields = ['date_creation', 'date_modification', 'date_derniere_entree', 'date_derniere_sortie']
+        
+    def validate_quantite_par_paquet(self, value):
+        if value < 1:
+            raise serializers.ValidationError("La quantité par paquet doit être d'au moins 1")
+        return value
 
-    @staticmethod
-    def creer_transaction_et_objet(validated_data, model_class, description_template=None):
-        """
-        Méthode utilitaire pour créer une transaction et l'objet associé
-        """
-        # Générer description automatique si non fournie
-        if 'description' not in validated_data or not validated_data['description']:
-            if description_template:
-                validated_data['description'] = description_template
+class MouvementStockSerializer(serializers.ModelSerializer):
+    """Serializer pour les mouvements de stock"""
+    stock_nom = serializers.CharField(source='stock.nom_produit', read_only=True)
+    stock_unite = serializers.CharField(source='stock.unite_mesure', read_only=True)
+    type_mouvement_display = serializers.CharField(source='get_type_mouvement_display', read_only=True)
+    motif_display = serializers.CharField(source='get_motif_display', read_only=True)
+    utilisateur_nom = serializers.CharField(source='utilisateur.username', read_only=True)
+    
+    class Meta:
+        model = MouvementStock
+        fields = [
+            'id', 'stock', 'stock_nom', 'stock_unite', 'type_mouvement', 'type_mouvement_display',
+            'motif', 'motif_display', 'quantite', 'quantite_avant', 'quantite_apres',
+            'prix_unitaire', 'valeur_totale', 'transaction', 'utilisateur', 'utilisateur_nom',
+            'numero_facture', 'fournisseur', 'commentaire', 'date_mouvement', 'date_creation'
+        ]
+        read_only_fields = ['date_creation', 'valeur_totale']
 
-        # Calculer montant total
-        montant_total = validated_data['quantite'] * validated_data['prix_unitaire']
+class MouvementStockCreateSerializer(serializers.ModelSerializer):
+    """Serializer pour créer des mouvements de stock"""
+    mettre_a_jour_stock = serializers.BooleanField(default=True, write_only=True)
+    
+    class Meta:
+        model = MouvementStock
+        fields = [
+            'stock', 'type_mouvement', 'motif', 'quantite',
+            'prix_unitaire', 'numero_facture', 'fournisseur', 'commentaire',
+            'mettre_a_jour_stock'
+        ]
 
-        # Créer transaction
-        transaction_data = {
-            'type_transaction': 'RECETTE',
-            'montant': montant_total,
-            'description': validated_data.pop('description')
-        }
-        transaction = Transaction.objects.create(**transaction_data)
+    def create(self, validated_data):
+        mettre_a_jour = validated_data.pop('mettre_a_jour_stock', True)
+        stock = validated_data['stock']
+        
+        # Enregistrer la quantité avant mouvement
+        validated_data['quantite_avant'] = stock.quantite_actuelle
+        
+        # Calculer la nouvelle quantité selon le type de mouvement
+        if validated_data['type_mouvement'] in ['ENTREE', 'RETOUR']:
+            nouvelle_quantite = stock.quantite_actuelle + validated_data['quantite']
+        elif validated_data['type_mouvement'] in ['SORTIE', 'PERTE']:
+            nouvelle_quantite = stock.quantite_actuelle - validated_data['quantite']
+        else:  # AJUSTEMENT
+            nouvelle_quantite = validated_data['quantite']  # Quantité absolue
+            
+        validated_data['quantite_apres'] = nouvelle_quantite
+        
+        # Créer le mouvement
+        mouvement = MouvementStock.objects.create(**validated_data)
+        
+        return mouvement
 
-        # Créer l'objet associé
-        objet = model_class.objects.create(
+class RecetteMultiserviceAvecStockSerializer(serializers.ModelSerializer):
+    """Serializer spécialisé pour les recettes multiservice avec gestion automatique du stock"""
+    verifier_stock = serializers.BooleanField(default=True, write_only=True)
+    forcer_creation = serializers.BooleanField(default=False, write_only=True)
+    
+    class Meta:
+        model = RecetteMultiservice
+        fields = [
+            'type_service', 'quantite', 'type_papier', 'details',
+            'verifier_stock', 'forcer_creation'
+        ]
+
+    def validate(self, data):
+        # Vérifier le stock si c'est une impression/photocopie
+        if data['type_service'] in ['IMPRESSION', 'PHOTOCOPIE'] and data.get('verifier_stock', True):
+            type_papier = data.get('type_papier')
+            quantite = data.get('quantite', 0)
+            
+            if type_papier and hasattr(type_papier, 'stock'):
+                stock = type_papier.stock
+                if not stock.peut_satisfaire_demande(quantite) and not data.get('forcer_creation', False):
+                    raise serializers.ValidationError({
+                        'stock': f'Stock insuffisant pour {type_papier.nom}. '
+                                f'Disponible: {stock.quantite_actuelle} {stock.unite_mesure}, '
+                                f'Demandé: {quantite} {stock.unite_mesure}'
+                    })
+        
+        return data
+
+    def create(self, validated_data):
+        verifier_stock = validated_data.pop('verifier_stock', True)
+        forcer_creation = validated_data.pop('forcer_creation', False)
+        
+        # Créer la transaction
+        description = f"{validated_data['type_service']} x{validated_data['quantite']}"
+        if validated_data.get('type_papier'):
+            description += f" - {validated_data['type_papier'].nom}"
+            
+        prix_unitaire = validated_data['type_papier'].prix_unitaire if validated_data.get('type_papier') else 0
+        montant_total = validated_data['quantite'] * prix_unitaire
+        
+        transaction = Transaction.objects.create(
+            type_transaction='RECETTE',
+            montant=montant_total,
+            description=description
+        )
+        
+        # Créer la recette multiservice
+        validated_data['prix_unitaire'] = prix_unitaire
+        recette = RecetteMultiservice.objects.create(
             transaction=transaction,
             **validated_data
         )
-        return objet
+        
+        # Déduire du stock si applicable
+        if (validated_data['type_service'] in ['IMPRESSION', 'PHOTOCOPIE'] and 
+            validated_data.get('type_papier') and 
+            hasattr(validated_data['type_papier'], 'stock')):
+            
+            stock = validated_data['type_papier'].stock
+            
+            # Créer le mouvement de stock
+            MouvementStock.objects.create(
+                stock=stock,
+                type_mouvement='SORTIE',
+                motif='IMPRESSION' if validated_data['type_service'] == 'IMPRESSION' else 'PHOTOCOPIE',
+                quantite=validated_data['quantite'],
+                quantite_avant=stock.quantite_actuelle,
+                quantite_apres=stock.quantite_actuelle - validated_data['quantite'],
+                prix_unitaire=prix_unitaire,
+                transaction=transaction,
+                commentaire=f"Consommation pour {description}"
+            )
+        
+        return recette
+
+# ...existing code...

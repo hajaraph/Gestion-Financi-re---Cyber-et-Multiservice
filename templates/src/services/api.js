@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { setupAuthInterceptor, setupErrorInterceptor } from './interceptors';
 
 // Configuration de base d'Axios
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -12,40 +13,9 @@ const apiClient = axios.create({
   },
 });
 
-// Intercepteur pour ajouter automatiquement le token d'authentification
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Token ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Intercepteur pour gérer les réponses et les erreurs
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Gestion globale des erreurs
-    if (error.response?.status === 401) {
-      // Token expiré ou invalide
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
-      window.location.href = '/'; // Rediriger vers la page de connexion
-    }
-
-    // Log des erreurs pour le debugging
-    console.error('API Error:', error.response?.data || error.message);
-
-    return Promise.reject(error);
-  }
-);
+// Configuration des intercepteurs
+setupAuthInterceptor(apiClient);
+setupErrorInterceptor(apiClient);
 
 // Services d'authentification
 export const authAPI = {

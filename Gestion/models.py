@@ -1,8 +1,11 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+import uuid
 
 # Create your models here.
 
@@ -163,6 +166,30 @@ class RecetteMultiservice(models.Model):
         # Pour l'impression et photocopie, quantite est interprétée comme nombre de pages
         if self.type_service in ['IMPRESSION', 'PHOTOCOPIE']:
             self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
+
+            # Créer un mouvement de stock pour le papier utilisé si c'est une nouvelle recette
+            if not self.pk and self.type_papier:
+                try:
+                    # Trouver le produit correspondant au type de papier
+                    produit = Produit.objects.get(categorie__nom='Papier', designation__icontains=self.get_type_papier_display())
+                    stock = produit.stock
+
+                    # Créer le mouvement de stock
+                    MouvementStock.objects.create(
+                        stock=stock,
+                        type_mouvement='SORTIE',
+                        motif='IMPRESSION' if self.type_service == 'IMPRESSION' else 'PHOTOCOPIE',
+                        quantite=self.quantite,
+                        quantite_avant=stock.quantite_actuelle,
+                        quantite_apres=stock.quantite_actuelle - self.quantite,
+                        prix_unitaire=self.prix_unitaire,
+                        transaction=self.transaction,
+                        utilisateur=self.transaction.utilisateur,
+                        commentaire=f"{self.get_type_service_display()} - {self.get_type_papier_display()}"
+                    )
+                except Produit.DoesNotExist:
+                    # Log l'erreur, mais ne bloque pas la sauvegarde
+                    print(f"Produit non trouvé pour le type de papier: {self.get_type_papier_display()}")
         else:
             self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
 
@@ -453,42 +480,6 @@ class ServicePersonnalise(models.Model):
         verbose_name = "Service personnalisé"
         verbose_name_plural = "Services personnalisés"
 
-class VenteProduit(models.Model):
-    """Modèle pour la vente de produits (papier, clés USB, etc.)"""
-    PRODUITS = [
-        ('PAPIER_A4', 'Papier A4 (rame)'),
-        ('PAPIER_A3', 'Papier A3 (rame)'),
-        ('CLE_USB_8GB', 'Clé USB 8GB'),
-        ('CLE_USB_16GB', 'Clé USB 16GB'),
-        ('CLE_USB_32GB', 'Clé USB 32GB'),
-        ('CD_VIERGE', 'CD vierge'),
-        ('DVD_VIERGE', 'DVD vierge'),
-        ('CARTOUCHE_ENCRE_NOIR', 'Cartouche encre noire'),
-        ('CARTOUCHE_ENCRE_COULEUR', 'Cartouche encre couleur'),
-    ]
-
-    transaction = models.OneToOneField(
-        Transaction,
-        on_delete=models.CASCADE,
-        related_name='vente_produit'
-    )
-    type_produit = models.CharField(max_length=25, choices=PRODUITS)
-    quantite = models.IntegerField(default=1)
-    prix_unitaire = models.DecimalField(max_digits=8, decimal_places=2)
-
-    def save(self, *args, **kwargs):
-        # Calcul automatique du montant total
-        self.transaction.montant = self.quantite * self.prix_unitaire
-        self.transaction.save()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Vente {self.get_type_produit_display()} x{self.quantite}"
-
-    class Meta:
-        verbose_name = "Vente de produit"
-        verbose_name_plural = "Ventes de produits"
-
 class Permission(models.Model):
     """Modèle pour gérer les permissions personnalisées"""
     ACTIONS = [
@@ -683,6 +674,70 @@ def sauvegarder_profil_utilisateur(sender, instance, **kwargs):
         instance.profil.save()
 
 
+class CategorieProduit(models.Model):
+    """Catégorie pour classer les produits (Papier, Fournitures, etc.)"""
+    nom = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Catégorie de produit"
+        verbose_name_plural = "Catégories de produits"
+        ordering = ['nom']
+    
+    def __str__(self):
+        return self.nom
+
+
+class UniteMesure(models.Model):
+    """Unités de mesure pour les produits (kg, l, pièce, rame, etc.)"""
+    nom = models.CharField(max_length=20, unique=True)
+    symbole = models.CharField(max_length=10)
+    description = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = "Unité de mesure"
+        verbose_name_plural = "Unités de mesure"
+    
+    def __str__(self):
+        return f"{self.nom} ({self.symbole})"
+
+
+class Produit(models.Model):
+
+    # Identification
+    designation = models.CharField(max_length=200)
+    reference = models.CharField(max_length=50, unique=True, default=uuid.uuid4, editable=False)
+    description = models.TextField(blank=True)
+    
+    # Catégorisation
+    categorie = models.ForeignKey(
+        CategorieProduit,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='produits',
+        verbose_name="Catégorie"
+    )
+
+    unite_mesure = models.ForeignKey(
+        UniteMesure,
+        on_delete=models.PROTECT,
+        related_name='produits',
+        verbose_name="Unité de mesure"
+    )
+    
+    # Métadonnées
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    actif = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Produit"
+        verbose_name_plural = "Produits"
+        ordering = ['designation']
+
+
 class TypePapier(models.Model):
     """Modèle pour gérer dynamiquement les types de papier"""
     nom = models.CharField(max_length=50, unique=True, help_text="Nom du type de papier (ex: A4 N&B, A3 Couleur)")
@@ -706,9 +761,18 @@ class TypePapier(models.Model):
 
 class Stock(models.Model):
     """Modèle pour gérer les stocks de produits/matières premières"""
-    nom_produit = models.CharField(max_length=100, help_text="Nom du produit en stock")
-    code_produit = models.CharField(max_length=50, unique=True, help_text="Code unique du produit")
-    description = models.TextField(blank=True, help_text="Description détaillée du produit")
+    ETAT_STOCK = [
+        ('EN_STOCK', 'En stock'),
+        ('RUPTURE', 'Rupture de stock'),
+        ('COMMANDE', 'En commande'),
+        ('LIMITE', 'Stock limité'),
+    ]
+
+    produit = models.OneToOneField(
+        Produit,
+        on_delete=models.CASCADE,
+        related_name='stock'
+    )
 
     # Quantités
     quantite_actuelle = models.DecimalField(
@@ -727,146 +791,38 @@ class Stock(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
-        blank=True,
-        null=True,
         help_text="Capacité maximale de stockage"
     )
 
-    # Unités et prix
-    unite_mesure = models.CharField(
+    # État
+    etat = models.CharField(
         max_length=20,
-        default='pièce',
-        help_text="Unité de mesure (feuille, rame, pièce, litre, etc.)"
+        choices=ETAT_STOCK,
+        default='EN_STOCK',
+        help_text="État actuel du stock"
     )
-    quantite_par_paquet = models.PositiveIntegerField(
-        default=1,
-        help_text="Nombre d'unités dans un paquet (1 si vendu uniquement en paquets)"
-    )
-    est_vendu_unite = models.BooleanField(
-        default=False,
-        help_text="Coché si le produit est vendu à l'unité"
-    )
-    prix_unitaire_achat = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        default=0,
-        help_text="Prix d'achat par unité ou par paquet selon le type de vente"
-    )
-    prix_unitaire_vente = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        default=0,
-        help_text="Prix de vente par unité ou par paquet selon le type de vente"
-    )
-
-    # Relation avec les types de papier pour liaison
-    type_papier = models.OneToOneField(
-        'TypePapier',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='stock',
-        help_text="Type de papier associé si applicable"
-    )
-
-    actif = models.BooleanField(default=True, help_text="Produit activement géré")
 
     # Métadonnées
-    date_creation = models.DateTimeField(auto_now_add=True)
-    date_modification = models.DateTimeField(auto_now=True)
-    date_derniere_entree = models.DateTimeField(null=True, blank=True)
-    date_derniere_sortie = models.DateTimeField(null=True, blank=True)
+    derniere_mise_a_jour = models.DateTimeField(auto_now=True)
+    commentaire = models.TextField(blank=True)
 
-    @property
-    def valeur_stock_achat(self):
-        """Valeur totale du stock au prix d'achat"""
-        return self.quantite_actuelle * self.prix_unitaire_achat
-
-    @property
-    def valeur_stock_vente(self):
-        """Valeur totale du stock au prix de vente"""
-        if self.est_vendu_unite:
-            return self.quantite_en_unites * self.prix_unitaire_vente
-        return self.quantite_actuelle * self.prix_unitaire_vente
-
-    @property
-    def est_en_rupture(self):
-        """Indique si le produit est en rupture de stock"""
-        return self.quantite_actuelle <= 0
-
-    @property
-    def necessite_reapprovisionnement(self):
-        """Indique si le produit nécessite un réapprovisionnement"""
-        return self.quantite_actuelle <= self.quantite_minimale
-
-    @property
-    def quantite_en_unites(self):
-        """Retourne la quantité totale en unités (paquets * unités/paquet)"""
-        if not self.est_vendu_unite:
-            return self.quantite_actuelle * self.quantite_par_paquet
-        return self.quantite_actuelle
-
-    def peut_satisfaire_demande(self, quantite_demandee, en_unites=False):
-        """
-        Vérifie si le stock peut satisfaire une demande
-        
-        Args :
-            quantite_demandee : quantité demandée
-            en_unites : si True, la quantité est en unités, sinon en paquets
-        """
-        if en_unites and not self.est_vendu_unite:
-            # Si on demande en unités, mais que le produit est vendu en paquets
-            paquets_necessaires = (quantite_demandee + self.quantite_par_paquet - 1) // self.quantite_par_paquet
-            return self.quantite_actuelle >= paquets_necessaires
-        return self.quantite_actuelle >= quantite_demandee
-
-    def consommer(self, quantite, en_unites=False):
-        """
-        Consomme une quantité du stock
-
-        """
-        if en_unites and not self.est_vendu_unite:
-            # Si on consomme des unités, mais que le produit est en paquets
-            paquets_necessaires = (quantite + self.quantite_par_paquet - 1) // self.quantite_par_paquet
-            if self.quantite_actuelle >= paquets_necessaires:
-                self.quantite_actuelle -= paquets_necessaires
-                self.save()
-                return True
-        elif self.quantite_actuelle >= quantite:
-            self.quantite_actuelle -= quantite
-            self.save()
-            return True
-        return False
-
-    def ajouter(self, quantite, en_unites=False):
-        """
-        Ajoute une quantité au stock
-        
-        Args:
-            quantite: quantité à ajouter
-            en_unites: si True, la quantité est en unités, sinon en paquets
-        """
-        if en_unites and not self.est_vendu_unite:
-            # Si on ajoute des unités mais que le produit est en paquets
-            paquets = quantite / self.quantite_par_paquet
-            self.quantite_actuelle += paquets
+    def save(self, *args, **kwargs):
+        # Mise à jour automatique de l'état du stock
+        if self.quantite_actuelle <= 0:
+            self.etat = 'RUPTURE'
+        elif self.quantite_actuelle <= self.quantite_minimale:
+            self.etat = 'LIMITE'
         else:
-            self.quantite_actuelle += quantite
-        self.save()
+            self.etat = 'EN_STOCK'
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        status = ""
-        if self.est_en_rupture:
-            status = " (RUPTURE)"
-        elif self.necessite_reapprovisionnement:
-            status = " (À RÉAPPROVISIONNER)"
-
-        return f"{self.nom_produit} - {self.quantite_actuelle} {self.unite_mesure}{status}"
+        return f"Stock de {self.produit.designation}: {self.quantite_actuelle} {self.produit.unite_mesure.symbole}"
 
     class Meta:
         verbose_name = "Stock"
         verbose_name_plural = "Stocks"
-        ordering = ['nom_produit']
+        ordering = ['produit__designation']
 
 class MouvementStock(models.Model):
     """Modèle pour tracer tous les mouvements de stock"""
@@ -979,10 +935,78 @@ class MouvementStock(models.Model):
 
     def __str__(self):
         signe = "+" if self.type_mouvement in ['ENTREE', 'RETOUR'] else "-"
-        return f"{self.stock.nom_produit} - {signe}{self.quantite} {self.stock.unite_mesure} ({self.get_motif_display()})"
+        return f"{self.stock.produit.designation} - {signe}{self.quantite} {self.stock.produit.unite_mesure.symbole} ({self.get_motif_display()})"
 
     class Meta:
         verbose_name = "Mouvement de stock"
         verbose_name_plural = "Mouvements de stock"
         ordering = ['-date_mouvement']
 
+class VenteProduit(models.Model):
+    """Modèle pour la vente directe de produits (papier, enveloppes, etc.)"""
+    transaction = models.OneToOneField(
+        Transaction,
+        on_delete=models.CASCADE,
+        related_name='vente_produit'
+    )
+    produit = models.ForeignKey(
+        Produit,
+        on_delete=models.PROTECT,
+        related_name='ventes',
+        help_text="Produit vendu"
+    )
+    quantite = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="Quantité vendue"
+    )
+    prix_unitaire = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text="Prix unitaire de vente"
+    )
+
+    def clean(self):
+        """Validation personnalisée"""
+        if self.produit and self.quantite:
+            stock = self.produit.stock
+            if not stock:
+                raise ValidationError("Ce produit n'a pas de stock associé")
+            if self.quantite > stock.quantite_actuelle:
+                raise ValidationError(
+                    f"Stock insuffisant. Quantité disponible : {stock.quantite_actuelle} {self.produit.unite_mesure.symbole}"
+                )
+
+    def save(self, *args, **kwargs):
+        # Validation avant sauvegarde
+        self.clean()
+
+        # Calcul automatique du montant total
+        self.transaction.montant = self.quantite * self.prix_unitaire
+        self.transaction.save()
+
+        # Créer un mouvement de stock
+        if not self.pk:  # Seulement à la création
+            stock = self.produit.stock
+            MouvementStock.objects.create(
+                stock=stock,
+                type_mouvement='SORTIE',
+                motif='VENTE',
+                quantite=self.quantite,
+                quantite_avant=stock.quantite_actuelle,
+                quantite_apres=stock.quantite_actuelle - self.quantite,
+                prix_unitaire=self.prix_unitaire,
+                transaction=self.transaction,
+                utilisateur=self.transaction.utilisateur,
+                commentaire=f"Vente directe - {self.produit.designation}"
+            )
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Vente {self.produit.designation} x{self.quantite} {self.produit.unite_mesure.symbole}"
+
+    class Meta:
+        verbose_name = "Vente de produit"
+        verbose_name_plural = "Ventes de produits"

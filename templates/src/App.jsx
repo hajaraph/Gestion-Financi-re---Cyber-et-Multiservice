@@ -59,19 +59,24 @@ function App() {
   }, []);
 
   // Fonction appelée lors de la tentative de connexion
-  const handleLogin = (userData) => {
-    // Vérifier que les données utilisateur sont valides
-    if (userData && userData.token) {
-      // Sauvegarder les informations d'authentification
-      localStorage.setItem('authToken', userData.token);
-      localStorage.setItem('userData', JSON.stringify(userData));
+  const handleLogin = async (userData) => {
+    try {
+      // Vérifier que les données utilisateur sont valides
+      if (userData && userData.token) {
+        // Sauvegarder les informations d'authentification
+        localStorage.setItem('authToken', userData.token);
+        localStorage.setItem('userData', JSON.stringify(userData));
 
-      // Mettre à jour l'état
-      setIsAuthenticated(true);
-      setUser(userData);
-      return true;
+        // Mettre à jour l'état
+        setIsAuthenticated(true);
+        setUser(userData);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erreur lors de la connexion:', error);
+      return false;
     }
-    return false;
   };
 
   // Fonction de déconnexion

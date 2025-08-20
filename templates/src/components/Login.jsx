@@ -69,12 +69,12 @@ const Login = ({ onLogin }) => {
         }
 
         // Appeler la fonction onLogin avec les données utilisateur
-        const loginSuccess = onLogin({
+        const loginSuccess = await onLogin({
           ...result.data.user,
           token: result.data.token
         });
 
-        // Si la connexion a échoué (token invalide ou autre problème)
+        // Si la connexion a échoué (token invalide ou autre problème).
         if (!loginSuccess) {
           setErrors({ 
             general: 'Échec de la connexion. Veuillez réessayer.' 

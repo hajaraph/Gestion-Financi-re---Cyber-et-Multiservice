@@ -769,9 +769,6 @@ class Stock(models.Model):
         help_text="Type de papier associé si applicable"
     )
 
-    # Informations complémentaires
-    fournisseur = models.CharField(max_length=100, blank=True, help_text="Fournisseur principal")
-    emplacement = models.CharField(max_length=100, blank=True, help_text="Emplacement physique")
     actif = models.BooleanField(default=True, help_text="Produit activement géré")
 
     # Métadonnées
@@ -813,12 +810,12 @@ class Stock(models.Model):
         """
         Vérifie si le stock peut satisfaire une demande
         
-        Args:
-            quantite_demandee: quantité demandée
-            en_unites: si True, la quantité est en unités, sinon en paquets
+        Args :
+            quantite_demandee : quantité demandée
+            en_unites : si True, la quantité est en unités, sinon en paquets
         """
         if en_unites and not self.est_vendu_unite:
-            # Si on demande en unités mais que le produit est vendu en paquets
+            # Si on demande en unités, mais que le produit est vendu en paquets
             paquets_necessaires = (quantite_demandee + self.quantite_par_paquet - 1) // self.quantite_par_paquet
             return self.quantite_actuelle >= paquets_necessaires
         return self.quantite_actuelle >= quantite_demandee
@@ -826,16 +823,10 @@ class Stock(models.Model):
     def consommer(self, quantite, en_unites=False):
         """
         Consomme une quantité du stock
-        
-        Args:
-            quantite: quantité à consommer
-            en_unites: si True, la quantité est en unités, sinon en paquets
-            
-        Returns:
-            bool: True si la consommation a réussi, False sinon
+
         """
         if en_unites and not self.est_vendu_unite:
-            # Si on consomme des unités mais que le produit est en paquets
+            # Si on consomme des unités, mais que le produit est en paquets
             paquets_necessaires = (quantite + self.quantite_par_paquet - 1) // self.quantite_par_paquet
             if self.quantite_actuelle >= paquets_necessaires:
                 self.quantite_actuelle -= paquets_necessaires

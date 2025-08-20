@@ -53,14 +53,42 @@ export const authAPI = {
   login: async (credentials) => {
     try {
       const response = await apiClient.post('/auth/login/', credentials);
+      
+      // Vérifier si la réponse est valide
+      if (!response.data || !response.data.token) {
+        return {
+          success: false,
+          error: 'Réponse invalide du serveur'
+        };
+      }
+      
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
+      // Gestion détaillée des erreurs
+      if (error.response) {
+        // Erreur avec réponse du serveur (4xx, 5xx)
+        const errorMessage = error.response.data?.error || 
+                           error.response.data?.detail || 
+                           'Erreur de connexion';
+        return {
+          success: false,
+          error: errorMessage
+        };
+      } else if (error.request) {
+        // Pas de réponse du serveur
+        return {
+          success: false,
+          error: 'Impossible de se connecter au serveur. Vérifiez votre connexion.'
+        };
+      }
+      
+      // Erreur inattendue
       return {
         success: false,
-        error: error.response?.data?.error || 'Erreur de connexion'
+        error: 'Une erreur inattendue est survenue.'
       };
     }
   },

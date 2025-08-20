@@ -58,15 +58,20 @@ function App() {
     setTimeout(checkAuthStatus, 500);
   }, []);
 
-  // Fonction appelée lors de la connexion réussie
+  // Fonction appelée lors de la tentative de connexion
   const handleLogin = (userData) => {
-    // Sauvegarder les informations d'authentification
-    localStorage.setItem('authToken', userData.token);
-    localStorage.setItem('userData', JSON.stringify(userData));
+    // Vérifier que les données utilisateur sont valides
+    if (userData && userData.token) {
+      // Sauvegarder les informations d'authentification
+      localStorage.setItem('authToken', userData.token);
+      localStorage.setItem('userData', JSON.stringify(userData));
 
-    // Mettre à jour l'état
-    setIsAuthenticated(true);
-    setUser(userData);
+      // Mettre à jour l'état
+      setIsAuthenticated(true);
+      setUser(userData);
+      return true;
+    }
+    return false;
   };
 
   // Fonction de déconnexion

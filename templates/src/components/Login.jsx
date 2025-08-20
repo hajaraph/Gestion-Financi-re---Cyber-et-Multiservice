@@ -43,9 +43,14 @@ const Login = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // Valider le formulaire avant la soumission
+    const isValid = validateForm();
+    if (!isValid) {
+      return; // Ne pas continuer si le formulaire n'est pas valide
+    }
 
     setIsLoading(true);
+    setErrors({}); // Réinitialiser les erreurs précédentes
 
     try {
       // Utiliser le service API centralisé
@@ -64,19 +69,28 @@ const Login = ({ onLogin }) => {
         }
 
         // Appeler la fonction onLogin avec les données utilisateur
-        onLogin({
+        const loginSuccess = onLogin({
           ...result.data.user,
           token: result.data.token
         });
 
+        // Si la connexion a échoué (token invalide ou autre problème)
+        if (!loginSuccess) {
+          setErrors({ 
+            general: 'Échec de la connexion. Veuillez réessayer.' 
+          });
+        }
       } else {
         // Afficher l'erreur retournée par le service API
-        setErrors({ general: result.error });
+        setErrors({ 
+          general: result.error || 'Nom d\'utilisateur ou mot de passe incorrect' 
+        });
       }
-
     } catch (error) {
       console.error('Erreur de connexion:', error);
-      setErrors({ general: 'Une erreur inattendue s\'est produite' });
+      setErrors({ 
+        general: 'Erreur de connexion au serveur. Veuillez réessayer.' 
+      });
     } finally {
       setIsLoading(false);
     }

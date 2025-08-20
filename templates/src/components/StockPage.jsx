@@ -63,28 +63,46 @@ const StockPage = () => {
   
   const handleProductNameChange = (e) => {
     const newName = e.target.value;
-    setProductForm(prev => ({
-      ...prev,
-      nom_produit: newName,
-      code_produit: generateProductCode(newName)
-    }));
+    setProductForm(prev => {
+      const newCode = generateProductCode(newName);
+      return {
+        ...prev,
+        nom_produit: newName,
+        code_produit: newCode
+      };
+    });
   };
 
   // Fetch stocks data
   useEffect(() => {
+    let isMounted = true;
+
     const fetchStocks = async () => {
       try {
         const response = await stockAPI.getAll();
-        setStocks(response.data);
+        if (isMounted) {
+          setStocks(response.data);
+        }
       } catch (error) {
         console.error('Error fetching stocks:', error);
         showNotification('Erreur lors du chargement des stocks', 'error');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchStocks();
+    // Gestion de la promesse avec .then() et .catch()
+    fetchStocks()
+      .then(() => {
+        // Callback optionnel après le succès
+      })
+      .catch((error) => {
+        // Gestion des erreurs déjà faite dans fetchStocks
+        // Cette partie est optionnelle, car on gère déjà les erreurs dans le try/catch
+        console.error('Error in fetchStocks promise chain:', error);
+      });
   }, []);
 
   const showNotification = (message, type = 'success') => {

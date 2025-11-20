@@ -5,9 +5,10 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import TarifsPage from './components/TarifsPage';
-import RecettesPage from './components/RecettesPage';
 import StockPage from './components/StockPage';
 import { authAPI } from './services/api';
+import ProduitsPage from './components/ProduitsPage';
+import VenteProduitPage from './components/VenteProduitPage';
 
 // Composants de pages (à créer)
 const InternetPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Services Internet</h1><p>Gestion des forfaits Internet</p></div>;
@@ -135,9 +136,9 @@ function App() {
                 <Dashboard user={user} />
               </MainLayout>
             } />
-            <Route path="/recettes" element={
+            <Route path="/vente-produits" element={
               <MainLayout>
-                <RecettesPage />
+                <VenteProduitPage />
               </MainLayout>
             } />
             <Route path="/internet" element={
@@ -163,6 +164,11 @@ function App() {
             <Route path="/stock" element={
               <MainLayout>
                 <StockPage />
+              </MainLayout>
+            } />
+            <Route path="/produits" element={
+              <MainLayout>
+                <ProduitsPage />
               </MainLayout>
             } />
             <Route path="/categories" element={

@@ -23,7 +23,7 @@ export const authAPI = {
   login: async (credentials) => {
     try {
       const response = await apiClient.post('/auth/login/', credentials);
-      
+
       // Vérifier si la réponse est valide
       if (!response.data || !response.data.token) {
         return {
@@ -31,7 +31,7 @@ export const authAPI = {
           error: 'Réponse invalide du serveur'
         };
       }
-      
+
       return {
         success: true,
         data: response.data
@@ -40,8 +40,8 @@ export const authAPI = {
       // Gestion détaillée des erreurs
       if (error.response) {
         // Erreur avec réponse du serveur (4xx, 5xx)
-        const errorMessage = error.response.data?.error || 
-                           error.response.data?.detail || 
+        const errorMessage = error.response.data?.error ||
+                           error.response.data?.detail ||
                            'Erreur de connexion';
         return {
           success: false,
@@ -54,7 +54,7 @@ export const authAPI = {
           error: 'Impossible de se connecter au serveur. Vérifiez votre connexion.'
         };
       }
-      
+
       // Erreur inattendue
       return {
         success: false,
@@ -69,7 +69,6 @@ export const authAPI = {
       await apiClient.post('/auth/logout/');
       return { success: true };
     } catch {
-      // Même en cas d'erreur, on considère la déconnexion locale comme réussie
       return { success: true };
     }
   },
@@ -511,118 +510,99 @@ export const servicePersonnaliseAPI = {
 
 // Services pour la gestion des stocks
 export const stockAPI = {
-  // Récupérer tous les stocks
   getAll: async (params = {}) => {
     try {
       const response = await apiClient.get('/api/stocks/', { params });
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Error fetching stocks:', error);
       return { success: false, error: error.response?.data || error.message };
     }
   },
-
-  // Récupérer un stock par ID
-  getById: async (id) => {
+  update: async (id, data) => {
     try {
-      const response = await apiClient.get(`/api/stocks/${id}/`);
+      const response = await apiClient.patch(`/api/stocks/${id}/`, data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error(`Error fetching stock ${id}:`, error);
       return { success: false, error: error.response?.data || error.message };
     }
   },
-
-  // Créer un nouveau produit en stock
-  createProduct: async (productData) => {
+  recordEntry: async (data) => {
     try {
-      const response = await apiClient.post('/api/stocks/', productData);
+      const response = await apiClient.post('/api/stocks/enregistrer_entree/', data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Error creating stock product:', error);
       return { success: false, error: error.response?.data || error.message };
     }
   },
+};
 
-  // Mettre à jour un produit en stock
-  updateProduct: async (id, productData) => {
+// Services pour les produits (liste pour listes déroulantes)
+export const produitAPI = {
+  getAll: async (params = {}) => {
     try {
-      const response = await apiClient.patch(`/api/stocks/${id}/`, productData);
+      const response = await apiClient.get('/api/produits/', { params });
       return { success: true, data: response.data };
     } catch (error) {
-      console.error(`Error updating stock product ${id}:`, error);
       return { success: false, error: error.response?.data || error.message };
     }
   },
-
-  // Supprimer un produit du stock
-  deleteProduct: async (id) => {
+  create: async (payload) => {
     try {
-      await apiClient.delete(`/api/stocks/${id}/`);
+      const response = await apiClient.post('/api/produits/', payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  update: async (id, payload) => {
+    try {
+      const response = await apiClient.put(`/api/produits/${id}/`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  delete: async (id) => {
+    try {
+      await apiClient.delete(`/api/produits/${id}/`);
       return { success: true };
     } catch (error) {
-      console.error(`Error deleting stock product ${id}:`, error);
-      return { success: false, error: error.response?.data || error.message };
-    }
-  },
-
-  // Créer un mouvement de stock
-  createMovement: async (movementData) => {
-    try {
-      const response = await apiClient.post('/api/mouvements-stock/', movementData);
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error creating stock movement:', error);
-      return { success: false, error: error.response?.data || error.message };
-    }
-  },
-
-  // Récupérer l'historique des mouvements de stock
-  getMovementHistory: async (params = {}) => {
-    try {
-      const response = await apiClient.get('/api/mouvements-stock/', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error fetching stock movements:', error);
-      return { success: false, error: error.response?.data || error.message };
-    }
-  },
-
-  // Récupérer les statistiques de stock
-  getStats: async () => {
-    try {
-      const response = await apiClient.get('/api/stocks/stats/');
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error fetching stock stats:', error);
-      return { success: false, error: error.response?.data || error.message };
-    }
-  },
-
-  // Générer un rapport de stock
-  generateReport: async (params = {}) => {
-    try {
-      const response = await apiClient.get('/api/stocks/generate-report/', { 
-        params,
-        responseType: 'blob' 
-      });
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error generating stock report:', error);
-      return { success: false, error: error.response?.data || error.message };
-    }
-  },
-
-  // Vérifier les alertes de stock (rupture, seuil bas)
-  checkStockAlerts: async () => {
-    try {
-      const response = await apiClient.get('/api/stocks/check-alerts/');
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error checking stock alerts:', error);
       return { success: false, error: error.response?.data || error.message };
     }
   }
+};
+
+export const categorieProduitAPI = {
+  getAll: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/categorie-produits/', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+};
+
+export const uniteMesureAPI = {
+  getAll: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/unite-mesures/', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+};
+
+export const venteProduitAPI = {
+  create: async (payload) => {
+    try {
+      const response = await apiClient.post('/api/vente-produits/', payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
 };
 
 // Export de l'instance Axios pour des cas spéciaux
@@ -637,5 +617,10 @@ export default {
   depenses: depenseAPI,
   tarifs: tarifAPI,
   servicesPersonnalises: servicePersonnaliseAPI,
+  produits: produitAPI,
+  categorieProduits: categorieProduitAPI,
+  uniteMesures: uniteMesureAPI,
+  stock: stockAPI,
+  venteProduit: venteProduitAPI,
   client: apiClient,
 };

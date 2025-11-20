@@ -18,6 +18,10 @@ router.register(r'paliers-remise', views.PalierRemiseViewSet)
 router.register(r'permissions', views.PermissionViewSet)
 router.register(r'roles', views.RoleViewSet)
 router.register(r'profils', views.ProfilUtilisateurViewSet)
+router.register(r'produits', views.ProduitViewSet)
+router.register(r'categorie-produits', views.CategorieProduitViewSet)
+router.register(r'unite-mesures', views.UniteMesureViewSet)
+router.register(r'vente-produits', views.VenteProduitViewSet)
 
 # URLs spécifiques pour l'authentification
 urlpatterns = [

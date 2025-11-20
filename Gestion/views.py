@@ -7,11 +7,12 @@ from rest_framework.response import Response
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from datetime import datetime
+from django.db.models import QuerySet
 from .models import (
     CategorieService, Transaction,
     RecetteInternet, RecetteMultiservice, Depense, TypePapier,
     TarifService, ServicePersonnalise, PalierRemise, Permission, Role, ProfilUtilisateur,
-    Stock, MouvementStock
+    Stock, MouvementStock, Produit, CategorieProduit, UniteMesure, VenteProduit
 )
 from .serializers import (
     CategorieServiceSerializer, TransactionSerializer,
@@ -23,11 +24,33 @@ from .serializers import (
     RoleCreateSerializer, PermissionCheckSerializer, ProfilUtilisateurCreateSerializer,
     ServiceRapideAvecRemiseSerializer, RecetteMultiserviceCreateSerializer,
     StockSerializer, MouvementStockSerializer, MouvementStockCreateSerializer,
+    ProduitSerializer, CategorieProduitSerializer, UniteMesureSerializer, EntreeStockSerializer,
+    VenteProduitSerializer, VenteProduitCreateSerializer
 )
 
 # Permissions personnalisées pour l'API
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
 import json
+
+
+def filter_by_date_range(
+        queryset: QuerySet,
+        request,
+        date_field: str,
+        date_format: str = '%Y-%m-%d'
+) -> QuerySet:
+    date_debut = request.query_params.get('date_debut')
+    date_fin = request.query_params.get('date_fin')
+
+    if date_debut:
+        date_debut = datetime.strptime(date_debut, date_format)
+        queryset = queryset.filter(**{f"{date_field}__gte": date_debut})
+
+    if date_fin:
+        date_fin = datetime.strptime(date_fin, date_format)
+        queryset = queryset.filter(**{f"{date_field}__lte": date_fin})
+
+    return queryset
 
 
 class CustomPermission(BasePermission):
@@ -41,6 +64,10 @@ class CustomPermission(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
+        # Le super-utilisateur a tous les droits
+        if request.user.is_superuser:
+            return True
+
         # Vérifier si l'utilisateur a un profil
         if not hasattr(request.user, 'profil'):
             return False
@@ -50,6 +77,10 @@ class CustomPermission(BasePermission):
         # Vérifier si le profil est actif
         if not profil.actif:
             return False
+
+        # Le rôle Administrateur a tous les droits
+        if profil.role and profil.role.nom == 'Administrateur':
+            return True
 
         # Vérifier les restrictions temporelles
         if not profil.peut_travailler_maintenant():
@@ -342,16 +373,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(type_transaction=type_transaction)
 
         # Filtrage par date
-        date_debut = self.request.query_params.get('date_debut', None)
-        date_fin = self.request.query_params.get('date_fin', None)
-
-        if date_debut:
-            date_debut = datetime.strptime(date_debut, '%Y-%m-%d')
-            queryset = queryset.filter(date_transaction__gte=date_debut)
-
-        if date_fin:
-            date_fin = datetime.strptime(date_fin, '%Y-%m-%d')
-            queryset = queryset.filter(date_transaction__lte=date_fin)
+        queryset = filter_by_date_range(queryset, self.request, 'date_transaction')
 
         return queryset
 
@@ -897,82 +919,236 @@ class TypePapierViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(nouveau_type)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+@permission_required('manage_produits')
+class ProduitViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les produits avec suivi de stock et de prix
+    """
+    queryset = Produit.objects.all()
+    serializer_class = ProduitSerializer
+
+    def get_queryset(self):
+        """
+        Surcharge pour ajouter des filtres personnalisés et des annotations.
+        """
+        queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
+        
+        # Filtre par catégorie
+        categorie_id = self.request.query_params.get('categorie_id')
+        if categorie_id:
+            queryset = queryset.filter(categorie_id=categorie_id)
+            
+        # Filtre par terme de recherche
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(designation__icontains=search) |
+                Q(reference__icontains=search) |
+                Q(description__icontains=search)
+            )
+            
+        # Filtre par statut de stock
+        en_stock = self.request.query_params.get('en_stock')
+        if en_stock == 'true':
+            queryset = queryset.filter(stock__quantite_actuelle__gt=0)
+        elif en_stock == 'false':
+            queryset = queryset.filter(stock__quantite_actuelle__lte=0)
+            
+        # Trier par défaut par désignation
+        return queryset.order_by('designation')
+
+    @action(detail=False, methods=['get'])
+    def statistiques(self, request):
+        """
+        Retourne des statistiques sur les produits
+        """
+        # Compter le nombre total de produits
+        total_produits = self.get_queryset().count()
+        
+        # Compter les produits en rupture de stock
+        produits_rupture = self.get_queryset().filter(stock__quantite_actuelle__lte=0).count()
+        
+        # Valeur totale du stock au prix d'achat et de vente
+        valeurs = self.get_queryset().aggregate(
+            valeur_stock_achat=Sum(F('stock__quantite_actuelle') * F('stock__prix_achat_moyen')),
+            valeur_stock_vente=Sum(F('stock__quantite_actuelle') * F('prix_vente'))
+        )
+        
+        return Response({
+            'total_produits': total_produits,
+            'produits_rupture': produits_rupture,
+            'pourcentage_rupture': (produits_rupture / total_produits * 100) if total_produits > 0 else 0,
+            'valeur_stock_achat': valeurs.get('valeur_stock_achat') or 0,
+            'valeur_stock_vente': valeurs.get('valeur_stock_vente') or 0,
+            'marge_globale': (valeurs.get('valeur_stock_vente') or 0) - (valeurs.get('valeur_stock_achat') or 0)
+        })
+
+    @action(detail=True, methods=['get'])
+    def mouvements(self, request, pk=None):
+        """
+        Liste tous les mouvements de stock pour ce produit
+        """
+        produit = self.get_object()
+        mouvements = MouvementStock.objects.filter(stock__produit=produit).order_by('-date_mouvement')
+        
+        page = self.paginate_queryset(mouvements)
+        if page is not None:
+            serializer = MouvementStockSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = MouvementStockSerializer(mouvements, many=True)
+        return Response(serializer.data)
+        
+    @action(detail=True, methods=['post'])
+    def mettre_a_jour_prix(self, request, pk=None):
+        """
+        Mettre à jour le prix de vente d'un produit
+        """
+        produit = self.get_object()
+        nouveau_prix = request.data.get('nouveau_prix')
+        
+        if not nouveau_prix:
+            return Response(
+                {'error': 'Le champ nouveau_prix est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            nouveau_prix = float(nouveau_prix)
+            if nouveau_prix <= 0:
+                raise ValueError("Le prix doit être positif")
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Le prix doit être un nombre positif'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        ancien_prix = produit.prix_vente
+        produit.prix_vente = nouveau_prix
+        produit.save()
+        
+        return Response({
+            'message': f'Prix mis à jour: {ancien_prix} → {nouveau_prix} Ar',
+            'produit': ProduitSerializer(produit).data
+        })
+        
+    @action(detail=False, methods=['get'])
+    def produits_par_categorie(self, request):
+        """
+        Retourne la liste des produits groupés par catégorie
+        """
+        categories = CategorieProduit.objects.annotate(
+            nb_produits=Count('produits')
+        ).filter(nb_produits__gt=0).order_by('nom')
+        
+        result = []
+        for categorie in categories:
+            produits = Produit.objects.filter(categorie=categorie).order_by('designation')
+            
+            result.append({
+                'categorie': CategorieProduitSerializer(categorie).data,
+                'produits': ProduitSerializer(produits, many=True).data
+            })
+            
+        return Response(result)
+        
+    @action(detail=True, methods=['get'])
+    def historique_prix(self, request, pk=None):
+        """
+        Retourne l'historique des prix d'achat pour ce produit
+        """
+        produit = self.get_object()
+        mouvements = MouvementStock.objects.filter(
+            stock__produit=produit,
+            type_mouvement='ENTREE',
+            prix_unitaire__gt=0
+        ).order_by('-date_mouvement').values(
+            'date_mouvement',
+            'prix_unitaire',
+            'quantite',
+            'fournisseur',
+            'numero_facture'
+        )
+        
+        return Response(mouvements)
+
+
+@permission_required('manage_stock')
 class StockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les stocks de produits"""
-    queryset = Stock.objects.all()
+    queryset = Stock.objects.select_related('produit__unite_mesure', 'produit__categorie').all()
     serializer_class = StockSerializer
 
     def get_queryset(self):
-        queryset = Stock.objects.all()
+        queryset = super().get_queryset()
 
-        # Filtrer par statut actif
-        actif = self.request.query_params.get('actif', None)
-        if actif is not None:
-            queryset = queryset.filter(actif=actif.lower() == 'true')
-
-        # Filtrer par type de papier
-        type_papier_id = self.request.query_params.get('type_papier', None)
-        if type_papier_id:
-            queryset = queryset.filter(type_papier_id=type_papier_id)
-
-        # Filtrer par rupture de stock
-        en_rupture = self.request.query_params.get('en_rupture', None)
-        if en_rupture is not None:
-            if en_rupture.lower() == 'true':
-                queryset = queryset.filter(quantite_actuelle__lte=0)
-
-        # Filtrer par besoin de réapprovisionnement
-        reappro = self.request.query_params.get('reapprovisionnement', None)
-        if reappro is not None:
-            if reappro.lower() == 'true':
-                queryset = queryset.filter(quantite_actuelle__lte=F('quantite_minimale'))
-
-        # Recherche par nom ou code
+        # Recherche par désignation produit ou référence
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(nom_produit__icontains=search) |
-                Q(code_produit__icontains=search)
+                Q(produit__designation__icontains=search) |
+                Q(produit__reference__icontains=search)
             )
 
-        return queryset.order_by('nom_produit')
+        return queryset.order_by('produit__designation')
 
-    def create(self, request, *args, **kwargs):
-        """Créer un nouveau produit en stock avec gestion des champs personnalisés"""
+    @action(detail=False, methods=['post'], serializer_class=EntreeStockSerializer)
+    def enregistrer_entree(self, request):
+        """Enregistre une entrée de stock (achat) avec conversion d'unité."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        produit = Produit.objects.get(pk=data['produit_id'])
+        stock = produit.stock
         
-        # Récupérer les données validées
-        validated_data = serializer.validated_data
-        
-        # Définir les valeurs par défaut si non fournies
-        if 'quantite_par_paquet' not in validated_data:
-            validated_data['quantite_par_paquet'] = 1
+        quantite_achat = data['quantite_achat']
+        prix_total_achat = data['prix_total_achat']
+
+        # Conversion en unité de base
+        quantite_base = quantite_achat * produit.quantite_par_unite_achat
+        if quantite_base == 0:
+            return Response({'error': 'La quantité résultante ne peut pas être zéro.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        if 'est_vendu_unite' not in validated_data:
-            validated_data['est_vendu_unite'] = False
+        prix_unitaire_base = prix_total_achat / quantite_base
+
+        # Mise à jour du prix d'achat moyen pondéré
+        ancienne_valeur_stock = stock.quantite_actuelle * stock.prix_achat_moyen
+        nouvelle_valeur_stock = ancienne_valeur_stock + prix_total_achat
+        nouvelle_quantite_totale = stock.quantite_actuelle + quantite_base
         
-        # Créer l'instance
-        stock = Stock.objects.create(**validated_data)
+        stock.prix_achat_moyen = nouvelle_valeur_stock / nouvelle_quantite_totale
         
-        # Retourner la réponse
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            StockSerializer(stock, context=self.get_serializer_context()).data,
-            status=status.HTTP_201_CREATED,
-            headers=headers
+        # Création du mouvement de stock
+        MouvementStock.objects.create(
+            stock=stock,
+            type_mouvement='ENTREE',
+            motif='ACHAT',
+            quantite=quantite_base,
+            quantite_avant=stock.quantite_actuelle,
+            quantite_apres=nouvelle_quantite_totale,
+            prix_unitaire=prix_unitaire_base,
+            fournisseur=data.get('fournisseur', ''),
+            numero_facture=data.get('numero_facture', ''),
+            commentaire=data.get('commentaire', f"Achat de {quantite_achat} {produit.unite_achat.symbole if produit.unite_achat else ''}"),
+            utilisateur=request.user
         )
-    
+        
+        # Mettre à jour la quantité en stock directement
+        stock.quantite_actuelle = nouvelle_quantite_totale
+        stock.save()
+
+        return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['get'])
     def alertes(self, request):
         """Récupérer les alertes de stock (ruptures et réapprovisionnements)"""
-        from django.db.models import F
-
-        ruptures = Stock.objects.filter(quantite_actuelle__lte=0, actif=True)
+        ruptures = Stock.objects.filter(quantite_actuelle__lte=0, produit__actif=True)
         reappros = Stock.objects.filter(
-            quantite_actuelle__lte=F('quantite_minimale'),
             quantite_actuelle__gt=0,
-            actif=True
+            quantite_actuelle__lte=F('quantite_minimale'),
+            produit__actif=True
         )
 
         return Response({
@@ -985,86 +1161,21 @@ class StockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def valeurs(self, request):
         """Calculer les valeurs totales du stock"""
-        stocks_actifs = Stock.objects.filter(actif=True)
-
-        valeur_achat_totale = sum(stock.valeur_stock_achat for stock in stocks_actifs)
-        valeur_vente_totale = sum(stock.valeur_stock_vente for stock in stocks_actifs)
-        marge_potentielle = valeur_vente_totale - valeur_achat_totale
-
-        return Response({
-            'valeur_stock_achat': valeur_achat_totale,
-            'valeur_stock_vente': valeur_vente_totale,
-            'marge_potentielle': marge_potentielle,
-            'nombre_produits': stocks_actifs.count()
-        })
-
-    @action(detail=False, methods=['post'])
-    def initialiser_stocks_papier(self, request):
-        """Initialiser les stocks pour tous les types de papier"""
-        types_papier = TypePapier.objects.filter(actif=True)
-        created_count = 0
-
-        for type_papier in types_papier:
-            stock, created = Stock.objects.get_or_create(
-                type_papier=type_papier,
-                defaults={
-                    'nom_produit': f"Stock {type_papier.nom}",
-                    'code_produit': f"STOCK_{type_papier.code}",
-                    'quantite_actuelle': 0,
-                    'quantite_minimale': 100,  # 100 feuilles par défaut
-                    'unite_mesure': 'feuille',
-                    'prix_unitaire_achat': type_papier.prix_unitaire * 0.7,  # 70% du prix de vente
-                    'prix_unitaire_vente': type_papier.prix_unitaire,
-                    'description': f"Stock pour {type_papier.nom}",
-                    'actif': True
-                }
-            )
-            if created:
-                created_count += 1
-
-        return Response({
-            'message': f'{created_count} nouveaux stocks créés',
-            'total_stocks': Stock.objects.count()
-        })
-
-    @action(detail=True, methods=['post'])
-    def ajuster_stock(self, request):
-        """Ajuster manuellement le stock d'un produit"""
-        stock = self.get_object()
-        nouvelle_quantite = request.data.get('nouvelle_quantite')
-        motif = request.data.get('motif', 'INVENTAIRE')
-        commentaire = request.data.get('commentaire', '')
-
-        if nouvelle_quantite is None:
-            return Response(
-                {'error': 'nouvelle_quantite requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            nouvelle_quantite = float(nouvelle_quantite)
-        except ValueError:
-            return Response(
-                {'error': 'nouvelle_quantite doit être un nombre'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Créer le mouvement d'ajustement
-        MouvementStock.objects.create(
-            stock=stock,
-            type_mouvement='AJUSTEMENT',
-            motif=motif,
-            quantite=nouvelle_quantite,
-            quantite_avant=stock.quantite_actuelle,
-            quantite_apres=nouvelle_quantite,
-            prix_unitaire=stock.prix_unitaire_achat,
-            utilisateur=request.user if request.user.is_authenticated else None,
-            commentaire=commentaire or f"Ajustement manuel du stock"
+        stocks = Stock.objects.filter(produit__actif=True).annotate(
+            valeur_achat=F('quantite_actuelle') * F('prix_achat_moyen'),
+            valeur_vente=F('quantite_actuelle') * F('produit__prix_vente')
+        )
+        
+        agrégats = stocks.aggregate(
+            valeur_achat_totale=Sum('valeur_achat'),
+            valeur_vente_totale=Sum('valeur_vente')
         )
 
         return Response({
-            'message': f'Stock ajusté: {stock.quantite_actuelle} → {nouvelle_quantite} {stock.unite_mesure}',
-            'stock': StockSerializer(stock).data
+            'valeur_stock_achat': agrégats.get('valeur_achat_totale') or 0,
+            'valeur_stock_vente': agrégats.get('valeur_vente_totale') or 0,
+            'marge_potentielle': (agrégats.get('valeur_vente_totale') or 0) - (agrégats.get('valeur_achat_totale') or 0),
+            'nombre_produits': stocks.count()
         })
 
 class MouvementStockViewSet(viewsets.ModelViewSet):
@@ -1095,16 +1206,7 @@ class MouvementStockViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(motif=motif)
 
         # Filtrer par date
-        date_debut = self.request.query_params.get('date_debut', None)
-        date_fin = self.request.query_params.get('date_fin', None)
-
-        if date_debut:
-            date_debut = datetime.strptime(date_debut, '%Y-%m-%d')
-            queryset = queryset.filter(date_mouvement__gte=date_debut)
-
-        if date_fin:
-            date_fin = datetime.strptime(date_fin, '%Y-%m-%d')
-            queryset = queryset.filter(date_mouvement__lte=date_fin)
+        queryset = filter_by_date_range(queryset, self.request, 'date_mouvement')
 
         return queryset.order_by('-date_mouvement')
 
@@ -1185,6 +1287,31 @@ class MouvementStockViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CategorieProduitViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer les catégories de produits"""
+    queryset = CategorieProduit.objects.all()
+    serializer_class = CategorieProduitSerializer
+    permission_classes = [IsAuthenticated]
+
+class UniteMesureViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer les unités de mesure"""
+    queryset = UniteMesure.objects.all()
+    serializer_class = UniteMesureSerializer
+    permission_classes = [IsAuthenticated]
+
+@permission_required('add_recette')
+class VenteProduitViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer la vente directe de produits."""
+    queryset = VenteProduit.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return VenteProduitCreateSerializer
+        return VenteProduitSerializer
+
+    def get_queryset(self):
+        return VenteProduit.objects.select_related('produit', 'transaction').order_by('-transaction__date_transaction')
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

@@ -5,14 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bd340b9f-90b7-406f-a86e-70766b2ee2c4" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/data_source_mapping.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/6b081382-55e6-4202-a351-a5a812dc057a.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/6b081382-55e6-4202-a351-a5a812dc057a.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/data_source_mapping.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Finance/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/Finance/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gestion/migrations/0001_initial.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Gestion/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gestion/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gestion/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gestion/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/src/components/Login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/Login.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/src/components/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/src/components/StockPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/StockPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/services/api.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -35,27 +40,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Django Server.Finance.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Notification.DisplayName-DoNotAsk-DatabaseConfigFileWatcher.found": "New/updated database configurations found",
-    "Notification.DoNotAsk-DatabaseConfigFileWatcher.found": "true",
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "master",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Django Server.Finance.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Notification.DisplayName-DoNotAsk-DatabaseConfigFileWatcher.found&quot;: &quot;New/updated database configurations found&quot;,
+    &quot;Notification.DoNotAsk-DatabaseConfigFileWatcher.found&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="Finance" type="Python.DjangoServer" factoryName="Django server">
       <module name="Finance" />
@@ -86,8 +91,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-PY-252.23892.515" />
-        <option value="bundled-python-sdk-7e47963ff851-f0eec537fc84-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.23892.515" />
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-PY-252.25557.178" />
+        <option value="bundled-python-sdk-ce6832f46686-7b97d883f26b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.25557.178" />
       </set>
     </attachedChunks>
   </component>
@@ -103,7 +108,14 @@
       <workItem from="1755595821179" duration="3888000" />
       <workItem from="1755603970786" duration="308000" />
       <workItem from="1755604992988" duration="1504000" />
-      <workItem from="1755681624526" duration="4403000" />
+      <workItem from="1755681624526" duration="9531000" />
+      <workItem from="1755695800677" duration="3851000" />
+      <workItem from="1755717614068" duration="832000" />
+      <workItem from="1755718847650" duration="250000" />
+      <workItem from="1755722568912" duration="3000" />
+      <workItem from="1755722681469" duration="4425000" />
+      <workItem from="1755763168997" duration="24000" />
+      <workItem from="1757932901542" duration="395000" />
     </task>
     <servers />
   </component>

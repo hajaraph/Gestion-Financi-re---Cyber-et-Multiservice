@@ -23,16 +23,15 @@ const Sidebar = ({ user, onLogout }) => {
       description: 'Vue d\'ensemble des activités'
     },
     {
-      id: 'transactions',
-      name: 'Recettes',
+      id: 'vente-produits',
+      name: 'Vente Directe',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z"/>
-          <path d="M6 8h8v2H6V8zm0 3h4v1H6v-1z"/>
+          <path d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm-2 5V6a2 2 0 114 0v1H8z"/>
         </svg>
       ),
-      path: '/recettes',
-      description: 'Enregistrement de l\'argent entrant'
+      path: '/vente-produits',
+      description: 'Enregistrer la vente de produits'
     },
     {
       id: 'internet',
@@ -79,17 +78,6 @@ const Sidebar = ({ user, onLogout }) => {
       description: 'Gestion des prix et tarifs'
     },
     {
-      id: 'categories',
-      name: 'Catégories Services',
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-        </svg>
-      ),
-      path: '/categories',
-      description: 'Types de services offerts'
-    },
-    {
       id: 'utilisateurs',
       name: 'Utilisateurs',
       icon: (
@@ -111,6 +99,17 @@ const Sidebar = ({ user, onLogout }) => {
       ),
       path: '/stock',
       description: 'Gestion des stocks et inventaire'
+    },
+    {
+      id: 'produits',
+      name: 'Produits',
+      icon: (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v9a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2V5a2 2 0 00-2-2H4zm2 4h8a1 1 0 010 2H6a1 1 0 110-2zm0 4h6a1 1 0 010 2H6a1 1 0 110-2z" clipRule="evenodd"/>
+        </svg>
+      ),
+      path: '/produits',
+      description: 'Enregistrer et gérer les produits'
     },
     {
       id: 'parametres',

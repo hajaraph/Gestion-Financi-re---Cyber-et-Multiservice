@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 import uuid
 
 # Create your models here.
@@ -22,23 +23,6 @@ class CategorieService(models.Model):
         verbose_name = "Catégorie de service"
         verbose_name_plural = "Catégories de services"
 
-class TypeTransaction(models.Model):
-    """Types de transactions (Recette/Dépense)"""
-    TYPES = [
-        ('RECETTE', 'Recette'),
-        ('DEPENSE', 'Dépense'),
-    ]
-
-    nom = models.CharField(max_length=50, choices=TYPES, unique=True)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.get_nom_display()
-
-    class Meta:
-        verbose_name = "Type de transaction"
-        verbose_name_plural = "Types de transactions"
-
 class Transaction(models.Model):
     """Modèle principal pour toutes les transactions financières"""
     TYPE_CHOICES = [
@@ -48,7 +32,7 @@ class Transaction(models.Model):
 
     # Informations de base
     type_transaction = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    montant = models.DecimalField(max_digits=10, decimal_places=2)
+    montant = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     description = models.TextField()
     date_transaction = models.DateTimeField(default=timezone.now)
 
@@ -72,8 +56,11 @@ class Transaction(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 
+    # Historisation
+    history = HistoricalRecords()
+
     def __str__(self):
-        return f"{self.get_type_transaction_display()} - {self.montant} FCFA - {self.date_transaction.strftime('%d/%m/%Y')}"
+        return f"{self.get_type_transaction_display()} - {self.montant} Ar - {self.date_transaction.strftime('%d/%m/%Y')}"
 
     class Meta:
         verbose_name = "Transaction"
@@ -116,16 +103,6 @@ class RecetteMultiservice(models.Model):
         ('AUTRE', 'Autre service'),
     ]
 
-    # Harmonise avec le front (A4/A3 NB ou Couleur) et permet un type personnalisé
-    TYPE_PAPIER_CHOICES = [
-        ('A4_NB', 'A4 N&B'),
-        ('A4_COULEUR', 'A4 Couleur'),
-        ('A3_NB', 'A3 N&B'),
-        ('A3_COULEUR', 'A3 Couleur'),
-        ('BRISTOL', 'Bristol'),
-        ('AUTRE', 'Autre type'),
-    ]
-
     transaction = models.OneToOneField(
         Transaction,
         on_delete=models.CASCADE,
@@ -133,36 +110,28 @@ class RecetteMultiservice(models.Model):
     )
     type_service = models.CharField(max_length=15, choices=SERVICES)
     # Remarque : pour IMPRESSION/PHOTOCOPIE, quantite correspond au nombre de pages
-    quantite = models.IntegerField(default=1)
-    prix_unitaire = models.DecimalField(max_digits=6, decimal_places=2)
+    quantite = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+    prix_unitaire = models.DecimalField(max_digits=6, decimal_places=2, validators=[MinValueValidator(0)])
     
     # Champs spécifiques pour l'impression/photocopie
-    type_papier = models.CharField(
-        max_length=20, 
-        choices=TYPE_PAPIER_CHOICES, 
+    type_papier = models.ForeignKey(
+        'TypePapier',
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name='recettes',
         help_text="Type de papier utilisé (requis pour impression/photocopie)"
     )
-    # Champ libre si type_papier == 'AUTRE'
+    # Champ libre si type_papier n'est pas référencé
     papier_personnalise = models.CharField(
         max_length=50,
         blank=True,
         help_text="Nom du papier si 'Autre' est sélectionné"
     )
-    # Gardé pour compatibilité : si fourni, il sera recopié vers quantite
-    nombre_pages = models.IntegerField(
-        blank=True, 
-        null=True,
-        help_text="Nombre de pages (obsolète, utiliser quantite)"
-    )
     
     details = models.TextField(blank=True)
 
     def save(self, *args, **kwargs):
-        # Compat : si nombre_pages est fourni, l'utiliser comme quantite (pages)
-        if self.nombre_pages and self.nombre_pages > 0:
-            self.quantite = self.nombre_pages
-
         # Pour l'impression et photocopie, quantite est interprétée comme nombre de pages
         if self.type_service in ['IMPRESSION', 'PHOTOCOPIE']:
             self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
@@ -170,11 +139,13 @@ class RecetteMultiservice(models.Model):
             # Créer un mouvement de stock pour le papier utilisé si c'est une nouvelle recette
             if not self.pk and self.type_papier:
                 try:
-                    # Trouver le produit correspondant au type de papier
-                    produit = Produit.objects.get(categorie__nom='Papier', designation__icontains=self.get_type_papier_display())
+                    # Utiliser directement le produit associé si disponible, sinon fallback par nom exact
+                    produit = self.type_papier.produit_associe or Produit.objects.get(
+                        categorie__nom='Papier',
+                        designation__iexact=self.type_papier.nom
+                    )
                     stock = produit.stock
 
-                    # Créer le mouvement de stock
                     MouvementStock.objects.create(
                         stock=stock,
                         type_mouvement='SORTIE',
@@ -185,11 +156,11 @@ class RecetteMultiservice(models.Model):
                         prix_unitaire=self.prix_unitaire,
                         transaction=self.transaction,
                         utilisateur=self.transaction.utilisateur,
-                        commentaire=f"{self.get_type_service_display()} - {self.get_type_papier_display()}"
+                        commentaire=f"{self.get_type_service_display()} - {self.type_papier.nom}"
                     )
                 except Produit.DoesNotExist:
                     # Log l'erreur, mais ne bloque pas la sauvegarde
-                    print(f"Produit non trouvé pour le type de papier: {self.get_type_papier_display()}")
+                    print(f"Produit non trouvé pour le type de papier: {self.type_papier.nom}")
         else:
             self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
 
@@ -198,7 +169,11 @@ class RecetteMultiservice(models.Model):
 
     def __str__(self):
         if self.type_service in ['IMPRESSION', 'PHOTOCOPIE']:
-            papier = self.get_type_papier_display() if self.type_papier and self.type_papier != 'AUTRE' else (self.papier_personnalise or '')
+            # Utiliser le nom du type de papier (FK) ou le papier personnalisé
+            if self.type_papier:
+                papier = self.type_papier.nom
+            else:
+                papier = self.papier_personnalise or ''
             suffix = f" {papier}" if papier else ''
             return f"{self.get_type_service_display()} {self.quantite} page(s){suffix}"
         return f"{self.get_type_service_display()} - {self.quantite} unité(s)"
@@ -206,6 +181,7 @@ class RecetteMultiservice(models.Model):
     class Meta:
         verbose_name = "Recette Multiservice"
         verbose_name_plural = "Recettes Multiservice"
+
 
 class Depense(models.Model):
     """Modèle pour les dépenses du cyber"""
@@ -235,6 +211,7 @@ class Depense(models.Model):
     class Meta:
         verbose_name = "Dépense"
         verbose_name_plural = "Dépenses"
+
 
 class TarifService(models.Model):
     """Modèle pour gérer les tarifs de chaque service de manière flexible"""
@@ -278,6 +255,9 @@ class TarifService(models.Model):
         help_text="Code unique pour identifier le service"
     )
 
+    # Historisation
+    history = HistoricalRecords()
+
     # Métadonnées
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
@@ -306,6 +286,7 @@ class TarifService(models.Model):
         verbose_name = "Tarif de service"
         verbose_name_plural = "Tarifs des services"
         ordering = ['categorie', 'nom_service']
+
 
 class PalierRemise(models.Model):
     """Modèle pour gérer les paliers de remise selon la quantité"""
@@ -378,6 +359,7 @@ class PalierRemise(models.Model):
         verbose_name_plural = "Paliers de remise"
         ordering = ['tarif_service', 'quantite_minimum']
         unique_together = ['tarif_service', 'quantite_minimum']
+
 
 class ServicePersonnalise(models.Model):
     """Modèle pour gérer les services personnalisés avec tarification flexible"""
@@ -480,6 +462,7 @@ class ServicePersonnalise(models.Model):
         verbose_name = "Service personnalisé"
         verbose_name_plural = "Services personnalisés"
 
+
 class Permission(models.Model):
     """Modèle pour gérer les permissions personnalisées"""
     ACTIONS = [
@@ -506,6 +489,11 @@ class Permission(models.Model):
         ('change_tarif', 'Modifier les tarifs'),
         ('manage_remise', 'Gérer les remises'),
 
+        # Gestion des produits et stocks
+        ('view_produit', 'Voir les produits et stocks'),
+        ('manage_produits', 'Gérer les produits (créer, modifier, supprimer)'),
+        ('manage_stock', 'Gérer les stocks (mouvements, ajustements)'),
+
         # Rapports et statistiques
         ('view_rapport_journalier', 'Voir rapport journalier'),
         ('view_rapport_mensuel', 'Voir rapport mensuel'),
@@ -531,6 +519,7 @@ class Permission(models.Model):
         verbose_name = "Permission"
         verbose_name_plural = "Permissions"
         ordering = ['module', 'code_permission']
+
 
 class Role(models.Model):
     """Modèle pour définir des rôles avec ensemble de permissions"""
@@ -563,6 +552,7 @@ class Role(models.Model):
         verbose_name = "Rôle"
         verbose_name_plural = "Rôles"
         ordering = ['nom']
+
 
 class ProfilUtilisateur(models.Model):
     """Extension du modèle User avec permissions personnalisées"""
@@ -601,6 +591,27 @@ class ProfilUtilisateur(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.role.nom if self.role else 'Sans rôle'}"
+
+    def clean(self):
+        """Valide le format de jours_travail (nombres 1..7 séparés par des virgules)."""
+        jours_str = self.jours_travail or ''
+        try:
+            jours = [int(j) for j in jours_str.split(',') if j.strip()]
+        except ValueError:
+            raise ValidationError({
+                'error': "Format invalide. Utilisez des nombres 1 à 7 séparés par des virgules (ex: '1,2,3,4,5')."
+            })
+
+        if not jours:
+            raise ValidationError({'error': "Veuillez indiquer au moins un jour de travail."})
+
+        if not all(1 <= j <= 7 for j in jours):
+            raise ValidationError({'jours_travail': "Les jours de travail doivent être compris entre 1 et 7."})
+
+    def save(self, *args, **kwargs):
+        # Valider avant sauvegarde pour attraper les erreurs utilisateur
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def a_permission(self, code_permission):
         """Vérifie si l'utilisateur a une permission spécifique"""
@@ -719,12 +730,40 @@ class Produit(models.Model):
         related_name='produits',
         verbose_name="Catégorie"
     )
+    prix_vente = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Prix de vente unitaire par défaut"
+    )
+    marge_minimale = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=10,
+        help_text="Marge minimale en pourcentage"
+    )
 
+    # Unité de base (pour le stock)
     unite_mesure = models.ForeignKey(
         UniteMesure,
         on_delete=models.PROTECT,
         related_name='produits',
-        verbose_name="Unité de mesure"
+        verbose_name="Unité de mesure (stock)",
+        help_text="Unité de base pour la gestion du stock (ex: feuille, ml)"
+    )
+
+    # Unité d'achat (pour les entrées de stock)
+    unite_achat = models.ForeignKey(
+        UniteMesure,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='produits_achetes',
+        verbose_name="Unité d'achat",
+        help_text="Unité utilisée lors de l'achat (ex: rame, bouteille)"
+    )
+    quantite_par_unite_achat = models.DecimalField(
+        max_digits=10, decimal_places=2, default=1,
+        help_text="Facteur de conversion (ex: 500 si 1 rame = 500 feuilles)"
     )
     
     # Métadonnées
@@ -745,6 +784,13 @@ class TypePapier(models.Model):
     prix_unitaire = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Prix par page/unité")
     description = models.TextField(blank=True, help_text="Description optionnelle")
     actif = models.BooleanField(default=True, help_text="Type de papier disponible")
+    produit_associe = models.ForeignKey(
+        'Produit',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='types_papier'
+    )
 
     # Métadonnées
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -779,19 +825,25 @@ class Stock(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="Quantité actuellement en stock"
+        help_text="Quantité actuellement en stock (en unité de base)"
     )
     quantite_minimale = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="Seuil d'alerte pour réapprovisionnement"
+        help_text="Seuil d'alerte pour réapprovisionnement (en unité de base)"
     )
     quantite_maximale = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="Capacité maximale de stockage"
+        help_text="Capacité maximale de stockage (en unité de base)"
+    )
+    
+    # Coût
+    prix_achat_moyen = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text="Prix d'achat moyen pondéré par unité de base"
     )
 
     # État
@@ -805,6 +857,9 @@ class Stock(models.Model):
     # Métadonnées
     derniere_mise_a_jour = models.DateTimeField(auto_now=True)
     commentaire = models.TextField(blank=True)
+
+    # Historisation
+    history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
         # Mise à jour automatique de l'état du stock
@@ -852,6 +907,27 @@ class MouvementStock(models.Model):
         on_delete=models.CASCADE,
         related_name='mouvements'
     )
+    prix_achat_unitaire = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Prix d'achat unitaire (pour les entrées en stock)"
+    )
+    prix_vente_unitaire = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Prix de vente unitaire (pour les sorties de stock)"
+    )
+    marge = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Marge en pourcentage"
+    )
     type_mouvement = models.CharField(max_length=15, choices=TYPE_MOUVEMENT_CHOICES)
     motif = models.CharField(max_length=20, choices=MOTIF_CHOICES)
 
@@ -859,7 +935,7 @@ class MouvementStock(models.Model):
     quantite = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Quantité du mouvement"
+        help_text="Quantité du mouvement (en unité de base)"
     )
     quantite_avant = models.DecimalField(
         max_digits=10,
@@ -877,7 +953,7 @@ class MouvementStock(models.Model):
         max_digits=8,
         decimal_places=2,
         default=0,
-        help_text="Prix unitaire pour ce mouvement"
+        help_text="Prix unitaire pour ce mouvement (en unité de base)"
     )
     valeur_totale = models.DecimalField(
         max_digits=10,

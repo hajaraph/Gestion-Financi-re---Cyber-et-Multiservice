@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { produitAPI, categorieProduitAPI, uniteMesureAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
+import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
 
 const emptyForm = {
   designation: '',
@@ -122,7 +123,12 @@ const ProduitsPage = () => {
         await load();
         notify('Produit supprimé');
       } else {
-        notify(result.error || 'Erreur lors de la suppression', 'error');
+        if (result.statusCode === 409) {
+            const productName = toDelete.designation;
+            notify(`"${productName}" ne peut pas être supprimé car il est utilisé dans le stock ou des ventes.`, 'warning');
+        } else {
+            notify(result.error?.detail || 'Erreur lors de la suppression.', 'error');
+        }
       }
     } finally {
       setShowDeleteModal(false);
@@ -133,12 +139,11 @@ const ProduitsPage = () => {
   return (
     <div className="p-6 relative">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up ${
-          notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}>
-          <div className="flex items-center gap-2">
-            <span>{notification.message}</span>
-          </div>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up flex items-center gap-2 ${
+          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+        } text-white`}>
+          <NotificationIcon type={notification.type} />
+          <span>{notification.message}</span>
         </div>
       )}
 

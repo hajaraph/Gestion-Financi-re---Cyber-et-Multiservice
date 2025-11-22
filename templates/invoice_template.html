@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Facture</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Helvetica', sans-serif;
+            color: #333;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #000;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .invoice-details table {
+            width: 100%;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f7f7f7;
+            font-weight: bold;
+        }
+        .items-table td.quantity, .items-table td.price, .items-table td.total {
+            text-align: right;
+        }
+        .totals {
+            width: 40%;
+            margin-left: auto;
+            border-top: 2px solid #333;
+            padding-top: 10px;
+        }
+        .totals table {
+            width: 100%;
+        }
+        .totals td {
+            padding: 5px;
+        }
+        .totals .grand-total {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .footer {
+            position: fixed;
+            bottom: -30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cyber Café</h1>
+        <p>Votre Adresse, Ville</p>
+        <p>Téléphone: +261 XX XX XXX XX</p>
+    </div>
+
+    <div class="invoice-details">
+        <table>
+            <tr>
+                <td>
+                    <strong>Facture N°:</strong> {{ vente.id }}<br>
+                    <strong>Date:</strong> {{ vente.date_creation|date:"d/m/Y H:i" }}<br>
+                    <strong>Client:</strong> {{ vente.client_nom|default:"Client de passage" }}
+                </td>
+                <td style="text-align: right;">
+                    <strong>Opérateur:</strong> {{ vente.transaction.utilisateur.username|default:"N/A" }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Service / Produit</th>
+                <th class="quantity">Quantité</th>
+                <th class="price">Prix Unitaire</th>
+                <th class="total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in vente.lignes.all %}
+            <tr>
+                <td>{{ ligne.tarif_service.nom_service }}</td>
+                <td class="quantity">{{ ligne.quantite|floatformat:2 }}</td>
+                <td class="price">{{ ligne.prix_unitaire|floatformat:2 }} Ar</td>
+                <td class="total">{{ ligne.montant_total|floatformat:2 }} Ar</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td><strong>Total HT:</strong></td>
+                <td class="price">{{ vente.transaction.montant|floatformat:2 }} Ar</td>
+            </tr>
+            <tr>
+                <td><strong>TVA (0%):</strong></td>
+                <td class="price">0.00 Ar</td>
+            </tr>
+            <tr class="grand-total">
+                <td>Total TTC:</td>
+                <td class="price">{{ vente.transaction.montant|floatformat:2 }} Ar</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Merci de votre visite !</p>
+    </div>
+</body>
+</html>

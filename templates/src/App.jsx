@@ -9,11 +9,10 @@ import StockPage from './components/StockPage';
 import { authAPI } from './services/api';
 import ProduitsPage from './components/ProduitsPage';
 import VenteProduitPage from './components/VenteProduitPage';
+import Multiservice from './components/Multiservice';
+import DepensesPage from './components/DepensesPage';
 
 // Composants de pages (à créer)
-const InternetPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Services Internet</h1><p>Gestion des forfaits Internet</p></div>;
-const MultiservicesPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Multiservices</h1><p>Photocopie, reliure, plastification</p></div>;
-const DepensesPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Dépenses</h1><p>Gestion des dépenses</p></div>;
 const CategoriesPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Catégories Services</h1><p>Types de services</p></div>;
 const UtilisateursPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Utilisateurs</h1><p>Gestion des profils</p></div>;
 const ParametresPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Paramètres</h1><p>Configuration système</p></div>;
@@ -141,14 +140,9 @@ function App() {
                 <VenteProduitPage />
               </MainLayout>
             } />
-            <Route path="/internet" element={
-              <MainLayout>
-                <InternetPage />
-              </MainLayout>
-            } />
             <Route path="/multiservices" element={
               <MainLayout>
-                <MultiservicesPage />
+                <Multiservice />
               </MainLayout>
             } />
             <Route path="/depenses" element={

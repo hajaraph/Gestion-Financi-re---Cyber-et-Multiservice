@@ -10,6 +10,44 @@ import uuid
 
 # Create your models here.
 
+class CompanySettings(models.Model):
+    """
+    Modèle pour stocker les paramètres généraux de l'entreprise.
+    Conçu comme un singleton pour n'avoir qu'une seule instance.
+    """
+    company_name = models.CharField(max_length=255, default="Mon Cyber")
+    address = models.CharField(max_length=255, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
+    default_currency = models.CharField(max_length=10, default="Ar", help_text="Devise par défaut (ex: Ar, EUR, USD)")
+    default_stock_alert_threshold = models.DecimalField(
+        max_digits=10, decimal_places=2, default=5,
+        help_text="Seuil d'alerte de stock par défaut pour les nouveaux produits"
+    )
+    # Ajoutez d'autres paramètres généraux ici si nécessaire
+
+    class Meta:
+        verbose_name = "Paramètres de l'entreprise"
+        verbose_name_plural = "Paramètres de l'entreprise"
+
+    def __str__(self):
+        return f"Paramètres de {self.company_name}"
+
+    def save(self, *args, **kwargs):
+        # Assure qu'il n'y a qu'une seule instance de ce modèle
+        if CompanySettings.objects.exists() and not self.pk:
+            raise ValidationError("Il ne peut y avoir qu'une seule instance de CompanySettings.")
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        """Charge l'instance unique de CompanySettings, ou en crée une si elle n'existe pas."""
+        if not cls.objects.exists():
+            cls.objects.create()
+        return cls.objects.get()
+
+
 class CategorieService(models.Model):
     """Catégories de services du cyber (Internet, Multiservice, etc.)"""
     nom = models.CharField(max_length=100, unique=True)
@@ -67,121 +105,6 @@ class Transaction(models.Model):
         verbose_name_plural = "Transactions"
         ordering = ['-date_transaction']
 
-class RecetteInternet(models.Model):
-    """Modèle spécifique pour les recettes Internet"""
-    FORFAITS = [
-        ('HEURE', 'À l\'heure'),
-        ('JOURNEE', 'Forfait journée'),
-        ('SEMAINE', 'Forfait semaine'),
-        ('MOIS', 'Forfait mensuel'),
-    ]
-
-    transaction = models.OneToOneField(
-        Transaction,
-        on_delete=models.CASCADE,
-        related_name='recette_internet'
-    )
-    type_forfait = models.CharField(max_length=10, choices=FORFAITS)
-    duree_minutes = models.IntegerField(help_text="Durée en minutes")
-    poste_utilise = models.CharField(max_length=50, blank=True)
-
-    def __str__(self):
-        return f"Internet {self.get_type_forfait_display()} - {self.transaction.montant} FCFA"
-
-    class Meta:
-        verbose_name = "Recette Internet"
-        verbose_name_plural = "Recettes Internet"
-
-class RecetteMultiservice(models.Model):
-    """Modèle pour les services multiservices (impression, photocopie, reliure, etc.)"""
-    SERVICES = [
-        ('IMPRESSION', 'Impression'),
-        ('PHOTOCOPIE', 'Photocopie'),
-        ('RELIURE', 'Reliure'),
-        ('PLASTIFICATION', 'Plastification'),
-        ('SCAN', 'Numérisation'),
-        ('AUTRE', 'Autre service'),
-    ]
-
-    transaction = models.OneToOneField(
-        Transaction,
-        on_delete=models.CASCADE,
-        related_name='recette_multiservice'
-    )
-    type_service = models.CharField(max_length=15, choices=SERVICES)
-    # Remarque : pour IMPRESSION/PHOTOCOPIE, quantite correspond au nombre de pages
-    quantite = models.IntegerField(default=1, validators=[MinValueValidator(1)])
-    prix_unitaire = models.DecimalField(max_digits=6, decimal_places=2, validators=[MinValueValidator(0)])
-    
-    # Champs spécifiques pour l'impression/photocopie
-    type_papier = models.ForeignKey(
-        'TypePapier',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='recettes',
-        help_text="Type de papier utilisé (requis pour impression/photocopie)"
-    )
-    # Champ libre si type_papier n'est pas référencé
-    papier_personnalise = models.CharField(
-        max_length=50,
-        blank=True,
-        help_text="Nom du papier si 'Autre' est sélectionné"
-    )
-    
-    details = models.TextField(blank=True)
-
-    def save(self, *args, **kwargs):
-        # Pour l'impression et photocopie, quantite est interprétée comme nombre de pages
-        if self.type_service in ['IMPRESSION', 'PHOTOCOPIE']:
-            self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
-
-            # Créer un mouvement de stock pour le papier utilisé si c'est une nouvelle recette
-            if not self.pk and self.type_papier:
-                try:
-                    # Utiliser directement le produit associé si disponible, sinon fallback par nom exact
-                    produit = self.type_papier.produit_associe or Produit.objects.get(
-                        categorie__nom='Papier',
-                        designation__iexact=self.type_papier.nom
-                    )
-                    stock = produit.stock
-
-                    MouvementStock.objects.create(
-                        stock=stock,
-                        type_mouvement='SORTIE',
-                        motif='IMPRESSION' if self.type_service == 'IMPRESSION' else 'PHOTOCOPIE',
-                        quantite=self.quantite,
-                        quantite_avant=stock.quantite_actuelle,
-                        quantite_apres=stock.quantite_actuelle - self.quantite,
-                        prix_unitaire=self.prix_unitaire,
-                        transaction=self.transaction,
-                        utilisateur=self.transaction.utilisateur,
-                        commentaire=f"{self.get_type_service_display()} - {self.type_papier.nom}"
-                    )
-                except Produit.DoesNotExist:
-                    # Log l'erreur, mais ne bloque pas la sauvegarde
-                    print(f"Produit non trouvé pour le type de papier: {self.type_papier.nom}")
-        else:
-            self.transaction.montant = (self.quantite or 0) * self.prix_unitaire
-
-        self.transaction.save()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        if self.type_service in ['IMPRESSION', 'PHOTOCOPIE']:
-            # Utiliser le nom du type de papier (FK) ou le papier personnalisé
-            if self.type_papier:
-                papier = self.type_papier.nom
-            else:
-                papier = self.papier_personnalise or ''
-            suffix = f" {papier}" if papier else ''
-            return f"{self.get_type_service_display()} {self.quantite} page(s){suffix}"
-        return f"{self.get_type_service_display()} - {self.quantite} unité(s)"
-
-    class Meta:
-        verbose_name = "Recette Multiservice"
-        verbose_name_plural = "Recettes Multiservice"
-
 
 class Depense(models.Model):
     """Modèle pour les dépenses du cyber"""
@@ -222,13 +145,6 @@ class TarifService(models.Model):
         ('AUTRE', 'Autres services'),
     ]
 
-    TYPE_PAPIER_CHOICES = [
-        ('A4', 'A4'),
-        ('A3', 'A3'),
-        ('BRISTOL', 'Bristol'),
-        ('AUTRE', 'Autre type'),
-    ]
-
     # Informations principales
     nom_service = models.CharField(max_length=100, unique=True, help_text="Nom unique du service")
     categorie = models.CharField(max_length=15, choices=CATEGORIES_SERVICE)
@@ -238,14 +154,6 @@ class TarifService(models.Model):
         default='unité',
         help_text="Unité de mesure (page, heure, pièce, etc.)"
     )
-
-    # Informations complémentaires
-    type_papier = models.CharField(
-        max_length=20,
-        choices=TYPE_PAPIER_CHOICES,
-        blank=True,
-        help_text="Type de papier pour les services d'impression/photocopie"
-    )
     description = models.TextField(blank=True)
     actif = models.BooleanField(default=True)
     code_service = models.CharField(
@@ -253,6 +161,12 @@ class TarifService(models.Model):
         unique=True,
         blank=True,
         help_text="Code unique pour identifier le service"
+    )
+    produits_consommes = models.ManyToManyField(
+        'Produit',
+        through='ConsommationService',
+        related_name='services_consommateurs',
+        blank=True
     )
 
     # Historisation
@@ -286,6 +200,18 @@ class TarifService(models.Model):
         verbose_name = "Tarif de service"
         verbose_name_plural = "Tarifs des services"
         ordering = ['categorie', 'nom_service']
+
+
+class ConsommationService(models.Model):
+    """Table intermédiaire pour lier un service aux produits qu'il consomme."""
+    tarif_service = models.ForeignKey(TarifService, on_delete=models.CASCADE)
+    produit = models.ForeignKey('Produit', on_delete=models.CASCADE)
+    quantite = models.DecimalField(max_digits=10, decimal_places=4, help_text="Quantité de produit consommée pour UNE unité du service.")
+
+    class Meta:
+        unique_together = ('tarif_service', 'produit')
+        verbose_name = "Consommation de produit par service"
+        verbose_name_plural = "Consommations de produits par service"
 
 
 class PalierRemise(models.Model):
@@ -894,6 +820,7 @@ class MouvementStock(models.Model):
         ('VENTE', 'Vente/Utilisation'),
         ('IMPRESSION', 'Consommation pour impression'),
         ('PHOTOCOPIE', 'Consommation pour photocopie'),
+        ('UTILISATION_SERVICE', 'Utilisation pour un service'),
         ('INVENTAIRE', 'Correction d\'inventaire'),
         ('DETERIORATION', 'Détérioration du produit'),
         ('VOL', 'Vol/Perte'),
@@ -1086,3 +1013,52 @@ class VenteProduit(models.Model):
     class Meta:
         verbose_name = "Vente de produit"
         verbose_name_plural = "Ventes de produits"
+
+class VenteGroupee(models.Model):
+    """Représente une vente groupée de plusieurs services ou produits à un client."""
+    transaction = models.OneToOneField(
+        Transaction,
+        on_delete=models.CASCADE,
+        related_name='vente_groupee'
+    )
+    client_nom = models.CharField(max_length=100, blank=True, help_text="Nom du client (optionnel)")
+    commentaire = models.TextField(blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Vente groupée #{self.id} - {self.transaction.montant} Ar"
+
+    class Meta:
+        verbose_name = "Vente Groupée"
+        verbose_name_plural = "Ventes Groupées"
+        ordering = ['-date_creation']
+
+class LigneDeVente(models.Model):
+    """Détail d'un service ou produit dans une vente groupée."""
+    vente = models.ForeignKey(
+        VenteGroupee,
+        on_delete=models.CASCADE,
+        related_name='lignes'
+    )
+    tarif_service = models.ForeignKey(
+        TarifService,
+        on_delete=models.PROTECT,
+        help_text="Le service ou produit vendu"
+    )
+    quantite = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix unitaire au moment de la vente")
+    montant_total = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255, blank=True, help_text="Description additionnelle (ex: format papier)")
+
+    def save(self, *args, **kwargs):
+        # Calculer le montant total de la ligne
+        self.montant_total = self.quantite * self.prix_unitaire
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.tarif_service.nom_service} x {self.quantite}"
+
+    class Meta:
+        verbose_name = "Ligne de Vente"
+        verbose_name_plural = "Lignes de Vente"

@@ -1,7 +1,6 @@
 from django.contrib import admin
 from .models import (
-    CategorieService, Transaction,
-    RecetteInternet, RecetteMultiservice, Depense,
+    CategorieService, Transaction, Depense,
     TarifService, ServicePersonnalise, PalierRemise,
     Permission, Role, ProfilUtilisateur
 )
@@ -18,17 +17,6 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ['type_transaction', 'date_transaction', 'categorie_service']
     search_fields = ['description']
     date_hierarchy = 'date_transaction'
-
-@admin.register(RecetteInternet)
-class RecetteInternetAdmin(admin.ModelAdmin):
-    list_display = ['transaction', 'type_forfait', 'duree_minutes', 'poste_utilise']
-    list_filter = ['type_forfait']
-
-
-@admin.register(RecetteMultiservice)
-class RecetteMultiserviceAdmin(admin.ModelAdmin):
-    list_display = ['transaction', 'type_service', 'quantite', 'prix_unitaire']
-    list_filter = ['type_service']
 
 @admin.register(Depense)
 class DepenseAdmin(admin.ModelAdmin):

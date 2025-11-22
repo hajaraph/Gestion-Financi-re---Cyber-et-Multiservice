@@ -292,45 +292,49 @@ export const depenseAPI = {
   getAll: async (params = {}) => {
     try {
       const response = await apiClient.get('/api/depenses/', { params });
-      return {
-        success: true,
-        data: response.data
-      };
+      return { success: true, data: response.data };
     } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Erreur lors de la récupération des dépenses'
-      };
+      return { success: false, error: error.response?.data || error.message };
     }
   },
-
-  create: async (depenseData) => {
+  create: async (payload) => {
     try {
-      const response = await apiClient.post('/api/depenses/', depenseData);
-      return {
-        success: true,
-        data: response.data
-      };
+      const response = await apiClient.post('/api/depenses/', payload);
+      return { success: true, data: response.data };
     } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Erreur lors de la création de la dépense'
-      };
+      return { success: false, error: error.response?.data || error.message };
     }
   },
-
+  update: async (id, payload) => {
+    try {
+      const response = await apiClient.put(`/api/depenses/${id}/`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  delete: async (id) => {
+    try {
+      await apiClient.delete(`/api/depenses/${id}/`);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
   getStatsByCategory: async () => {
     try {
       const response = await apiClient.get('/api/depenses/par_categorie/');
-      return {
-        success: true,
-        data: response.data
-      };
+      return { success: true, data: response.data };
     } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Erreur lors de la récupération des statistiques par catégorie'
-      };
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  getCategories: async () => {
+    try {
+        const response = await apiClient.get('/api/depenses/categories/');
+        return { success: true, data: response.data };
+    } catch (error) {
+        return { success: false, error: 'Erreur lors de la récupération des catégories' };
     }
   }
 };
@@ -385,13 +389,13 @@ export const tarifAPI = {
   delete: async (id) => {
     try {
       await apiClient.delete(`/api/tarifs/${id}/`);
-      return {
-        success: true
-      };
+      return { success: true };
     } catch (error) {
+      // Retourne le statut HTTP en cas d'erreur
       return {
         success: false,
-        error: error.response?.data?.error || 'Erreur lors de la suppression du tarif'
+        error: error.response?.data || error.message,
+        statusCode: error.response?.status // Ajout du statut HTTP
       };
     }
   },
@@ -567,7 +571,11 @@ export const produitAPI = {
       await apiClient.delete(`/api/produits/${id}/`);
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.response?.data || error.message };
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+        statusCode: error.response?.status // Ajout du statut HTTP
+      };
     }
   }
 };
@@ -613,6 +621,36 @@ export const venteProduitAPI = {
   },
 };
 
+export const venteGroupeeAPI = {
+  getAll: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/ventes-groupees/', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  create: async (payload) => {
+    try {
+      const response = await apiClient.post('/api/ventes-groupees/', payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+    
+  },
+  printInvoice: async (id) => {
+    try {
+      const response = await apiClient.get(`/api/ventes-groupees/${id}/imprimer_facture/`, {
+        responseType: 'blob',
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: 'Erreur lors du téléchargement de la facture' };
+    }
+  },
+};
+
 // Export de l'instance Axios pour des cas spéciaux
 export { apiClient };
 
@@ -630,5 +668,6 @@ export default {
   uniteMesures: uniteMesureAPI,
   stock: stockAPI,
   venteProduit: venteProduitAPI,
+  venteGroupee: venteGroupeeAPI,
   client: apiClient,
 };

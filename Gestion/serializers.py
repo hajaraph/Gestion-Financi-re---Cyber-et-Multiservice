@@ -2,10 +2,19 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from .models import (
     CategorieService, Transaction,
-    RecetteInternet, RecetteMultiservice, Depense, TypePapier,
+    Depense, TypePapier,
     TarifService, VenteProduit, ServicePersonnalise, PalierRemise,
-    Permission, Role, ProfilUtilisateur, Stock, MouvementStock, Produit, CategorieProduit, UniteMesure
+    Permission, Role, ProfilUtilisateur, Stock, MouvementStock, Produit, CategorieProduit, UniteMesure,
+    VenteGroupee, LigneDeVente, ConsommationService,
+    CompanySettings # Import the new model
 )
+
+
+# New Serializer for CompanySettings
+class CompanySettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanySettings
+        fields = '__all__'
 
 
 class CategorieServiceSerializer(serializers.ModelSerializer):
@@ -28,54 +37,13 @@ class TransactionSerializer(serializers.ModelSerializer):
             'date_creation', 'date_modification'
         ]
 
-
-class RecetteInternetSerializer(serializers.ModelSerializer):
-    transaction = TransactionSerializer()
-    type_forfait_display = serializers.CharField(source='get_type_forfait_display', read_only=True)
-
+class TransactionCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la création de transactions, n'incluant que les champs modifiables.
+    """
     class Meta:
-        model = RecetteInternet
-        fields = [
-            'id', 'transaction', 'type_forfait', 'type_forfait_display',
-            'duree_minutes', 'poste_utilise'
-        ]
-
-    def create(self, validated_data):
-        transaction_data = validated_data.pop('transaction')
-        transaction_data['type_transaction'] = 'RECETTE'
-        transaction = Transaction.objects.create(**transaction_data)
-        recette_internet = RecetteInternet.objects.create(
-            transaction=transaction,
-            **validated_data
-        )
-        return recette_internet
-
-
-class RecetteMultiserviceSerializer(serializers.ModelSerializer):
-    transaction = TransactionSerializer()
-    type_service_display = serializers.CharField(source='get_type_service_display', read_only=True)
-    type_papier_nom = serializers.CharField(source='type_papier.nom', read_only=True)
-    type_papier_prix = serializers.DecimalField(source='type_papier.prix_unitaire', max_digits=6, decimal_places=2,
-                                                read_only=True)
-    type_papier = serializers.PrimaryKeyRelatedField(queryset=TypePapier.objects.all(), allow_null=True, required=False)
-
-    class Meta:
-        model = RecetteMultiservice
-        fields = [
-            'id', 'transaction', 'type_service', 'type_service_display',
-            'quantite', 'prix_unitaire', 'type_papier', 'type_papier_nom', 'type_papier_prix',
-            'papier_personnalise', 'details'
-        ]
-
-    def create(self, validated_data):
-        transaction_data = validated_data.pop('transaction')
-        transaction_data['type_transaction'] = 'RECETTE'
-        transaction = Transaction.objects.create(**transaction_data)
-        recette_multiservice = RecetteMultiservice.objects.create(
-            transaction=transaction,
-            **validated_data
-        )
-        return recette_multiservice
+        model = Transaction
+        fields = ['montant', 'description']
 
 
 class DepenseSerializer(serializers.ModelSerializer):
@@ -100,66 +68,34 @@ class DepenseSerializer(serializers.ModelSerializer):
         return depense
 
 
-# Serializers simplifiés pour les créations rapides
-class RecetteInternetCreateSerializer(serializers.ModelSerializer):
-    montant = serializers.DecimalField(max_digits=10, decimal_places=2)
-    description = serializers.CharField(max_length=255)
-    categorie_service = serializers.PrimaryKeyRelatedField(
-        queryset=CategorieService.objects.all(),
-        required=False,
-        allow_null=True
-    )
-
-    class Meta:
-        model = RecetteInternet
-        fields = [
-            'type_forfait', 'duree_minutes', 'poste_utilise',
-            'montant', 'description', 'categorie_service'
-        ]
-
-    def create(self, validated_data):
-        # Extraire les données de transaction
-        transaction_data = {
-            'type_transaction': 'RECETTE',
-            'montant': validated_data.pop('montant'),
-            'description': validated_data.pop('description'),
-            'categorie_service': validated_data.pop('categorie_service', None)
-        }
-
-        # Créer la transaction
-        transaction = Transaction.objects.create(**transaction_data)
-
-        # Créer la recette internet
-        recette_internet = RecetteInternet.objects.create(
-            transaction=transaction,
-            **validated_data
-        )
-        return recette_internet
-
-
 class DepenseCreateSerializer(serializers.ModelSerializer):
-    montant = serializers.DecimalField(max_digits=10, decimal_places=2)
-    description = serializers.CharField(max_length=255)
+    # Utiliser le TransactionCreateSerializer pour le champ transaction imbriqué
+    transaction = TransactionCreateSerializer()
 
     class Meta:
         model = Depense
         fields = [
             'categorie_depense', 'fournisseur', 'numero_facture',
-            'date_echeance', 'montant', 'description'
+            'date_echeance', 'transaction' # 'transaction' est maintenant un champ imbriqué
         ]
 
     def create(self, validated_data):
-        # Extraire les données de transaction
-        transaction_data = {
-            'type_transaction': 'DEPENSE',
-            'montant': validated_data.pop('montant'),
-            'description': validated_data.pop('description')
-        }
-
+        # Extraire les données de transaction imbriquées
+        transaction_data = validated_data.pop('transaction')
+        
+        # Assurer que le type de transaction est 'DEPENSE'
+        transaction_data['type_transaction'] = 'DEPENSE'
+        
+        # Récupérer l'utilisateur de la requête si disponible
+        request = self.context.get('request')
+        user = request.user if request and hasattr(request, 'user') else None
+        if user and user.is_authenticated:
+            transaction_data['utilisateur'] = user
+        
         # Créer la transaction
         transaction = Transaction.objects.create(**transaction_data)
 
-        # Créer la dépense
+        # Créer la dépense, en la liant à la transaction nouvellement créée
         depense = Depense.objects.create(
             transaction=transaction,
             **validated_data
@@ -180,18 +116,32 @@ class PalierRemiseSerializer(serializers.ModelSerializer):
             'actif', 'date_debut', 'date_fin', 'est_valide'
         ]
 
+class ConsommationServiceSerializer(serializers.ModelSerializer):
+    produit_nom = serializers.CharField(source='produit.designation', read_only=True)
+    produit_stock = serializers.DecimalField(source='produit.stock.quantite_actuelle', max_digits=10, decimal_places=2, read_only=True, default=0)
+
+    class Meta:
+        model = ConsommationService
+        fields = ['produit', 'produit_nom', 'produit_stock', 'quantite']
+
+class ConsommationServiceWriteSerializer(serializers.Serializer):
+    produit_id = serializers.IntegerField()
+    quantite = serializers.DecimalField(max_digits=10, decimal_places=4)
 
 class TarifServiceSerializer(serializers.ModelSerializer):
     categorie_display = serializers.CharField(source='get_categorie_display', read_only=True)
-    type_papier_display = serializers.CharField(source='get_type_papier_display', read_only=True)
+    # type_papier_display = serializers.CharField(source='get_type_papier_display', read_only=True) # Supprimé
     paliers_remise = PalierRemiseSerializer(many=True, read_only=True)
     nombre_paliers = serializers.SerializerMethodField()
+    consommations = ConsommationServiceSerializer(source='consommationservice_set', many=True, read_only=True)
+    consommations_write = ConsommationServiceWriteSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = TarifService
         fields = [
             'id', 'nom_service', 'categorie', 'categorie_display', 'prix_unitaire',
-            'unite_mesure', 'type_papier', 'type_papier_display', 'description', 'actif', 'code_service',
+            'unite_mesure', 'description', 'actif', 'code_service', # 'type_papier' supprimé
+            'consommations', 'consommations_write',
             'date_creation', 'date_modification', 'paliers_remise', 'nombre_paliers'
         ]
         read_only_fields = ['code_service']
@@ -199,6 +149,31 @@ class TarifServiceSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_nombre_paliers(obj):
         return obj.paliers_remise.filter(actif=True).count()
+
+    @staticmethod
+    def _handle_consommations(tarif_service, consommations_data):
+        # Supprimer les anciennes consommations
+        ConsommationService.objects.filter(tarif_service=tarif_service).delete()
+        # Créer les nouvelles
+        for conso_data in consommations_data:
+            ConsommationService.objects.create(
+                tarif_service=tarif_service,
+                produit_id=conso_data['produit_id'],
+                quantite=conso_data['quantite']
+            )
+
+    def create(self, validated_data):
+        consommations_data = validated_data.pop('consommations_write', [])
+        tarif_service = TarifService.objects.create(**validated_data)
+        self._handle_consommations(tarif_service, consommations_data)
+        return tarif_service
+
+    def update(self, instance, validated_data):
+        consommations_data = validated_data.pop('consommations_write', None)
+        instance = super().update(instance, validated_data)
+        if consommations_data is not None:
+            self._handle_consommations(instance, consommations_data)
+        return instance
 
 
 class VenteProduitSerializer(serializers.ModelSerializer):
@@ -300,108 +275,6 @@ class VenteProduitCreateSerializer(serializers.ModelSerializer):
         )
 
         return vente
-
-
-class RecetteMultiserviceCreateSerializer(serializers.ModelSerializer):
-    """
-    Sérialiseur pour la création d'une recette multiservice (impression, photocopie, etc.)
-    Gère la création de la transaction associée et la mise à jour du stock si nécessaire.
-    """
-    montant_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    description = serializers.CharField(max_length=255, required=False)
-    utiliser_tarif_defaut = serializers.BooleanField(default=True, write_only=True)
-
-    # Champs spécifiques pour impression/photocopie
-    type_papier = serializers.PrimaryKeyRelatedField(
-        queryset=TypePapier.objects.all(),
-        required=False,
-        allow_null=True,
-        help_text="Type de papier utilisé (requis pour impression/photocopie)"
-    )
-    papier_personnalise = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        help_text="Détail du papier si 'Autre type' est sélectionné"
-    )
-
-    class Meta:
-        model = RecetteMultiservice
-        fields = [
-            'type_service', 'quantite', 'prix_unitaire', 'details',
-            'type_papier', 'papier_personnalise',
-            'montant_total', 'description', 'utiliser_tarif_defaut'
-        ]
-        extra_kwargs = {
-            'prix_unitaire': {'required': True},
-            'quantite': {'min_value': 1}
-        }
-
-    def validate(self, data):
-        """
-        Validation personnalisée pour la recette multiservice.
-        Vérifie les champs requis selon le type de service.
-        """
-        type_service = data.get('type_service')
-        type_papier = data.get('type_papier')
-
-        # Pour les services d'impression et photocopie, le type de papier est requis
-        if type_service in ['IMPRESSION', 'PHOTOCOPIE'] and not type_papier:
-            raise serializers.ValidationError({
-                'type_papier': "Ce champ est requis pour les services d'impression et photocopie"
-            })
-
-        # Si aucun type_papier mais papier_personnalise fourni, ok. Sinon, si type_papier est None pour impression/photocopie, déjà géré.
-        # Si un type_papier est fourni, papier_personnalise est ignoré.
-
-        return data
-
-    def create(self, validated_data):
-        """
-        Crée une recette multiservice avec la transaction associée.
-        La mise à jour du stock est gérée par la méthode save() du modèle RecetteMultiservice.
-        """
-        validated_data.pop('verifier_stock', True)
-        validated_data.pop('forcer_creation', False)
-
-        # Récupérer l'utilisateur de la requête
-        request = self.context.get('request')
-        user = request.user if request and hasattr(request, 'user') else None
-
-        # Créer la transaction
-        description = f"{validated_data['type_service']} x{validated_data['quantite']}"
-        type_papier_obj = validated_data.get('type_papier')
-
-        prix_unitaire = validated_data.get('prix_unitaire', 0)  # Use prix_unitaire from validated_data if provided
-        if type_papier_obj and prix_unitaire == 0:  # Fallback to type_papier's price if not provided in validated_data
-            prix_unitaire = type_papier_obj.prix_unitaire
-
-        if type_papier_obj:
-            description += f" - {type_papier_obj.nom}"
-
-        montant_total = validated_data['quantite'] * prix_unitaire
-
-        transaction = Transaction.objects.create(
-            type_transaction='RECETTE',
-            montant=montant_total,
-            description=description,
-            utilisateur=user,  # Assign user to transaction
-            categorie_service=CategorieService.objects.get_or_create(
-                nom='MULTISERVICE',
-                defaults={'description': 'Services multiservices (impression, photocopie, etc.)'}
-            )[0]
-        )
-
-        # Créer la recette multiservice
-        validated_data[
-            'prix_unitaire'] = prix_unitaire  # Ensure prix_unitaire is in validated_data for RecetteMultiservice.create
-        recette = RecetteMultiservice.objects.create(
-            transaction=transaction,
-            **validated_data
-        )
-
-        # Le mouvement de stock est géré par la méthode save() du modèle RecetteMultiservice
-
-        return recette
 
 
 class ServicePersonnaliseSerializer(serializers.ModelSerializer):
@@ -928,89 +801,6 @@ class MouvementStockCreateSerializer(serializers.ModelSerializer):
         return mouvement
 
 
-class RecetteMultiserviceAvecStockSerializer(serializers.ModelSerializer):
-    """Serializer spécialisé pour les recettes multiservice avec gestion automatique du stock"""
-    verifier_stock = serializers.BooleanField(default=True, write_only=True)
-    forcer_creation = serializers.BooleanField(default=False, write_only=True)
-
-    class Meta:
-        model = RecetteMultiservice
-        fields = [
-            'type_service', 'quantite', 'type_papier', 'details',
-            'verifier_stock', 'forcer_creation'
-        ]
-
-    def validate(self, data):
-        # Vérifier le stock si c'est une impression/photocopie
-        if data['type_service'] in ['IMPRESSION', 'PHOTOCOPIE'] and data.get('verifier_stock', True):
-            type_papier = data.get('type_papier')
-            quantite = data.get('quantite', 0)
-
-            if type_papier and type_papier.produit_associe and hasattr(type_papier.produit_associe, 'stock'):
-                stock = type_papier.produit_associe.stock
-                if stock.quantite_actuelle < quantite and not data.get('forcer_creation', False):
-                    raise serializers.ValidationError({
-                        'stock': f'Stock insuffisant pour {type_papier.nom}. '
-                                 f'Disponible: {stock.quantite_actuelle} {stock.produit.unite_mesure.symbole}, '
-                                 f'Demandé: {quantite} {stock.produit.unite_mesure.symbole}'
-                    })
-            elif type_papier and data['type_service'] in ['IMPRESSION',
-                                                          'PHOTOCOPIE'] and not type_papier.produit_associe:
-                raise serializers.ValidationError({
-                    'type_papier': f"Le type de papier '{type_papier.nom}' n'a pas de produit associé pour la gestion de stock."
-                })
-
-        return data
-
-    def create(self, validated_data):
-        """
-        Crée une recette multiservice avec la transaction associée.
-        La mise à jour du stock est gérée par la méthode save() du modèle RecetteMultiservice.
-        """
-        validated_data.pop('verifier_stock', True)
-        validated_data.pop('forcer_creation', False)
-
-        # Récupérer l'utilisateur de la requête
-        request = self.context.get('request')
-        user = request.user if request and hasattr(request, 'user') else None
-
-        # Créer la transaction
-        description = f"{validated_data['type_service']} x{validated_data['quantite']}"
-        type_papier_obj = validated_data.get('type_papier')
-
-        prix_unitaire = validated_data.get('prix_unitaire', 0)  # Use prix_unitaire from validated_data if provided
-        if type_papier_obj and prix_unitaire == 0:  # Fallback to type_papier's price if not provided in validated_data
-            prix_unitaire = type_papier_obj.prix_unitaire
-
-        if type_papier_obj:
-            description += f" - {type_papier_obj.nom}"
-
-        montant_total = validated_data['quantite'] * prix_unitaire
-
-        transaction = Transaction.objects.create(
-            type_transaction='RECETTE',
-            montant=montant_total,
-            description=description,
-            utilisateur=user,  # Assign user to transaction
-            categorie_service=CategorieService.objects.get_or_create(
-                nom='MULTISERVICE',
-                defaults={'description': 'Services multiservices (impression, photocopie, etc.)'}
-            )[0]
-        )
-
-        # Créer la recette multiservice
-        validated_data[
-            'prix_unitaire'] = prix_unitaire  # Ensure prix_unitaire is in validated_data for RecetteMultiservice.create
-        recette = RecetteMultiservice.objects.create(
-            transaction=transaction,
-            **validated_data
-        )
-
-        # Le mouvement de stock est géré par la méthode save() du modèle RecetteMultiservice
-
-        return recette
-
-
 class TypePapierSerializer(serializers.ModelSerializer):
     """Serializer pour les types de papier dynamiques"""
 
@@ -1021,3 +811,107 @@ class TypePapierSerializer(serializers.ModelSerializer):
             'actif', 'date_creation', 'date_modification'
         ]
         read_only_fields = ['date_creation', 'date_modification']
+
+class LigneDeVenteSerializer(serializers.ModelSerializer):
+    tarif_service_nom = serializers.CharField(source='tarif_service.nom_service', read_only=True)
+
+    class Meta:
+        model = LigneDeVente
+        fields = ['id', 'tarif_service', 'tarif_service_nom', 'quantite', 'prix_unitaire', 'montant_total', 'description']
+
+class VenteGroupeeSerializer(serializers.ModelSerializer):
+    transaction = TransactionSerializer(read_only=True)
+    lignes = LigneDeVenteSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = VenteGroupee
+        fields = ['id', 'transaction', 'client_nom', 'commentaire', 'date_creation', 'lignes']
+
+class LigneDeVenteCreateSerializer(serializers.Serializer):
+    tarif_service_id = serializers.IntegerField()
+    quantite = serializers.DecimalField(max_digits=10, decimal_places=2)
+    prix_unitaire = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    description = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+class VenteGroupeeCreateSerializer(serializers.Serializer):
+    client_nom = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    commentaire = serializers.CharField(required=False, allow_blank=True)
+    lignes = LigneDeVenteCreateSerializer(many=True)
+
+    @staticmethod
+    def validate_lignes(lignes_data):
+        for i, ligne_data in enumerate(lignes_data):
+            try:
+                tarif_service = TarifService.objects.prefetch_related('consommationservice_set__produit__stock').get(id=ligne_data['tarif_service_id'])
+                for consommation in tarif_service.consommationservice_set.all():
+                    stock = consommation.produit.stock
+                    quantite_necessaire = consommation.quantite * ligne_data['quantite']
+                    if stock.quantite_actuelle < quantite_necessaire:
+                        raise serializers.ValidationError(f"Stock insuffisant pour '{consommation.produit.designation}' utilisé dans le service '{tarif_service.nom_service}'. Disponible: {stock.quantite_actuelle}, nécessaire: {quantite_necessaire}.")
+            except TarifService.DoesNotExist:
+                 raise serializers.ValidationError(f"Le service avec l'ID {ligne_data['tarif_service_id']} n'existe pas.")
+        return lignes_data
+
+    def create(self, validated_data):
+        lignes_data = validated_data.pop('lignes')
+        montant_total = 0
+        description_transaction = "Vente groupée: "
+        
+        lignes_a_creer = []
+        for ligne_data in lignes_data:
+            tarif_service = TarifService.objects.get(id=ligne_data['tarif_service_id'])
+            prix_unitaire = ligne_data.get('prix_unitaire', tarif_service.prix_unitaire)
+            quantite = ligne_data['quantite']
+            montant_ligne = quantite * prix_unitaire
+            montant_total += montant_ligne
+            
+            description_transaction += f"{tarif_service.nom_service} x{quantite}, "
+
+            ligne_obj = LigneDeVente(
+                tarif_service=tarif_service,
+                quantite=quantite,
+                prix_unitaire=prix_unitaire,
+                montant_total=montant_ligne,
+                description=ligne_data.get('description', '')
+            )
+            lignes_a_creer.append(ligne_obj)
+
+        transaction = Transaction.objects.create(
+            type_transaction='RECETTE',
+            montant=montant_total,
+            description=description_transaction.strip(', '),
+            utilisateur=self.context['request'].user
+        )
+
+        vente_groupee = VenteGroupee.objects.create(
+            transaction=transaction,
+            **validated_data
+        )
+        
+        for ligne in lignes_a_creer:
+            ligne.vente = vente_groupee
+            ligne.save()
+            
+            # Décrémenter le stock pour chaque produit consommé
+            for consommation in ligne.tarif_service.consommationservice_set.all():
+                stock = consommation.produit.stock
+                quantite_a_deduire = consommation.quantite * ligne.quantite
+                
+                quantite_avant_mouvement = stock.quantite_actuelle
+                stock.quantite_actuelle -= quantite_a_deduire
+                stock.save()
+
+                MouvementStock.objects.create(
+                    stock=stock,
+                    type_mouvement='SORTIE',
+                    motif='UTILISATION_SERVICE',
+                    quantite=quantite_a_deduire,
+                    quantite_avant=quantite_avant_mouvement,
+                    quantite_apres=stock.quantite_actuelle,
+                    prix_unitaire=ligne.prix_unitaire,
+                    transaction=transaction,
+                    utilisateur=self.context['request'].user,
+                    commentaire=f"Consommé par service: {ligne.tarif_service.nom_service} (Vente #{vente_groupee.id})"
+                )
+
+        return vente_groupee

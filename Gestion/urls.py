@@ -6,8 +6,6 @@ from . import views
 router = DefaultRouter()
 router.register(r'categories', views.CategorieServiceViewSet)
 router.register(r'transactions', views.TransactionViewSet)
-router.register(r'recettes-internet', views.RecetteInternetViewSet)
-router.register(r'recettes-multiservice', views.RecetteMultiserviceViewSet)
 router.register(r'depenses', views.DepenseViewSet)
 router.register(r'tarifs', views.TarifServiceViewSet)
 router.register(r'types-papier', views.TypePapierViewSet)
@@ -22,6 +20,7 @@ router.register(r'produits', views.ProduitViewSet)
 router.register(r'categorie-produits', views.CategorieProduitViewSet)
 router.register(r'unite-mesures', views.UniteMesureViewSet)
 router.register(r'vente-produits', views.VenteProduitViewSet)
+router.register(r'ventes-groupees', views.VenteGroupeViewSet)
 
 # URLs spécifiques pour l'authentification
 urlpatterns = [

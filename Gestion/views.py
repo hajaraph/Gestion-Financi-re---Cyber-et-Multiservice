@@ -4,29 +4,34 @@ from rest_framework import viewsets, status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from django.db.models import Sum, Count, Q, F
+from django.db.models import Sum, Count, Q, F, ProtectedError # Import ProtectedError
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import QuerySet
 from .models import (
     CategorieService, Transaction,
-    RecetteInternet, RecetteMultiservice, Depense, TypePapier,
+    Depense, TypePapier,
     TarifService, ServicePersonnalise, PalierRemise, Permission, Role, ProfilUtilisateur,
-    Stock, MouvementStock, Produit, CategorieProduit, UniteMesure, VenteProduit
+    Stock, MouvementStock, Produit, CategorieProduit, UniteMesure, VenteProduit,
+    VenteGroupee
 )
 from .serializers import (
-    CategorieServiceSerializer, TransactionSerializer,
-    RecetteInternetSerializer, RecetteMultiserviceSerializer,
-    DepenseSerializer, RecetteInternetCreateSerializer, DepenseCreateSerializer,
+    CategorieServiceSerializer, TransactionSerializer, DepenseSerializer,
     TarifServiceSerializer, TypePapierSerializer,
     ServicePersonnaliseSerializer, ServicePersonnaliseCreateSerializer, ServiceRapideSerializer,
     PalierRemiseSerializer, PermissionSerializer, RoleSerializer, ProfilUtilisateurSerializer,
     RoleCreateSerializer, PermissionCheckSerializer, ProfilUtilisateurCreateSerializer,
-    ServiceRapideAvecRemiseSerializer, RecetteMultiserviceCreateSerializer,
+    ServiceRapideAvecRemiseSerializer,
     StockSerializer, MouvementStockSerializer, MouvementStockCreateSerializer,
     ProduitSerializer, CategorieProduitSerializer, UniteMesureSerializer, EntreeStockSerializer,
-    VenteProduitSerializer, VenteProduitCreateSerializer
+    VenteProduitSerializer, VenteProduitCreateSerializer,
+    VenteGroupeeSerializer, VenteGroupeeCreateSerializer, DepenseCreateSerializer
 )
+
+# Imports pour la génération de PDF
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 
 # Permissions personnalisées pour l'API
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
@@ -428,45 +433,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         return Response(resume)
 
-class RecetteInternetViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les recettes Internet"""
-    queryset = RecetteInternet.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return RecetteInternetCreateSerializer
-        return RecetteInternetSerializer
-
-    @action(detail=False, methods=['get'])
-    def statistiques_forfaits(self, request):
-        """Statistiques des forfaits Internet"""
-        stats = {}
-        for forfait_code, forfait_nom in RecetteInternet.FORFAITS:
-            total = RecetteInternet.objects.filter(
-                type_forfait=forfait_code
-            ).aggregate(
-                total_montant=Sum('transaction__montant'),
-                nombre_ventes=Count('id')
-            )
-
-            stats[forfait_code] = {
-                'nom': forfait_nom,
-                'total_montant': total['total_montant'] or 0,
-                'nombre_ventes': total['nombre_ventes'] or 0
-            }
-
-        return Response(stats)
-
-
-class RecetteMultiserviceViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les recettes multiservice"""
-    queryset = RecetteMultiservice.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return RecetteMultiserviceCreateSerializer
-        return RecetteMultiserviceSerializer
-
 
 class DepenseViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les dépenses"""
@@ -476,6 +442,13 @@ class DepenseViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return DepenseCreateSerializer
         return DepenseSerializer
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Retourne les choix de catégories de dépenses."""
+        choices = [{'value': code, 'label': label} for code, label in Depense.CATEGORIES_DEPENSE]
+        choices.sort(key=lambda x: x['label'])
+        return Response(choices)
 
     @action(detail=False, methods=['get'])
     def par_categorie(self, request):
@@ -606,6 +579,18 @@ class TarifServiceViewSet(viewsets.ModelViewSet):
         return Response({
             'message': f'{created_count} nouveaux tarifs créés sur {len(tarifs_defaut)} proposés'
         })
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            # Extraire le message d'erreur de Django
+            error_message = str(e).split('\n')[0] # Prend la première ligne du message d'erreur
+            return Response(
+                {'detail': error_message},
+                status=status.HTTP_409_CONFLICT # 409 Conflict est plus approprié pour les conflits de ressources
+            )
+
 
 class ServicePersonnaliseViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les services personnalisés"""
@@ -1074,6 +1059,16 @@ class ProduitViewSet(viewsets.ModelViewSet):
 
         return Response(mouvements)
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            error_message = str(e).split('\n')[0]
+            return Response(
+                {'detail': error_message},
+                status=status.HTTP_409_CONFLICT
+            )
+
 
 @permission_required('manage_stock')
 class StockViewSet(viewsets.ModelViewSet):
@@ -1321,6 +1316,36 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
         ventes = VenteProduit.objects.filter(transaction__date_transaction__date=aujourd_hui)
         serializer = self.get_serializer(ventes, many=True)
         return Response(serializer.data)
+
+class VenteGroupeViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer les ventes groupées."""
+    queryset = VenteGroupee.objects.all().prefetch_related('lignes__tarif_service', 'transaction__utilisateur')
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return VenteGroupeeCreateSerializer
+        return VenteGroupeeSerializer
+
+    @action(detail=True, methods=['get'])
+    def imprimer_facture(self, request, pk=None):
+        try:
+            vente = self.get_object()
+            template = get_template('invoice_template.html')
+            context = {'vente': vente}
+            html = template.render(context)
+            
+            response = HttpResponse(content_type='application/pdf')
+            # Laisser le navigateur décider (pas de 'attachment')
+            # response['Content-Disposition'] = f'filename="facture_{vente.id}.pdf"'
+            
+            pisa_status = pisa.CreatePDF(html, dest=response)
+            if pisa_status.err:
+                return HttpResponse('Erreur lors de la génération du PDF <pre>' + html + '</pre>')
+            return response
+        except VenteGroupee.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

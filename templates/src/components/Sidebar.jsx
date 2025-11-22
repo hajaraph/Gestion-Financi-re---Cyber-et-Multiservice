@@ -34,17 +34,6 @@ const Sidebar = ({ user, onLogout }) => {
       description: 'Enregistrer la vente de produits'
     },
     {
-      id: 'internet',
-      name: 'Services Internet',
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 6a2 2 0 012-2h6a2 2 0 012 2v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4z" clipRule="evenodd"/>
-        </svg>
-      ),
-      path: '/internet',
-      description: 'Forfaits et connexions Internet'
-    },
-    {
       id: 'multiservices',
       name: 'Multiservices',
       icon: (

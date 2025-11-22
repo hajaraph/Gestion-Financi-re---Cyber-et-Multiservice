@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { produitAPI, venteProduitAPI } from '../services/api';
+import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
 
 const VenteProduitPage = () => {
   const [produits, setProduits] = useState([]);
@@ -91,8 +92,11 @@ const VenteProduitPage = () => {
   return (
     <div className="p-6">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-          {notification.message}
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
+        } text-white`}>
+          <NotificationIcon type={notification.type} />
+          <span>{notification.message}</span>
         </div>
       )}
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Point de Vente Directe</h1>

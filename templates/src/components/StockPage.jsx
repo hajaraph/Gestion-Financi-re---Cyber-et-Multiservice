@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { stockAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
+import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
 import { FaBox, FaBoxOpen, FaSearch, FaExchangeAlt, FaPlus } from 'react-icons/fa';
 
 const StockPage = () => {
@@ -139,8 +140,11 @@ const StockPage = () => {
   return (
     <div className="p-6">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-          {notification.message}
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
+        } text-white`}>
+          <NotificationIcon type={notification.type} />
+          <span>{notification.message}</span>
         </div>
       )}
 

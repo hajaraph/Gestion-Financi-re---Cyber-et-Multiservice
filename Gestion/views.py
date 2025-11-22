@@ -698,6 +698,7 @@ class ServicePersonnaliseViewSet(viewsets.ModelViewSet):
             'remises_par_service': remises_par_service
         })
 
+
 class PalierRemiseViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les paliers de remise"""
     queryset = PalierRemise.objects.all()
@@ -933,12 +934,12 @@ class ProduitViewSet(viewsets.ModelViewSet):
         Surcharge pour ajouter des filtres personnalisés et des annotations.
         """
         queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
-        
+
         # Filtre par catégorie
         categorie_id = self.request.query_params.get('categorie_id')
         if categorie_id:
             queryset = queryset.filter(categorie_id=categorie_id)
-            
+
         # Filtre par terme de recherche
         search = self.request.query_params.get('search')
         if search:
@@ -947,14 +948,14 @@ class ProduitViewSet(viewsets.ModelViewSet):
                 Q(reference__icontains=search) |
                 Q(description__icontains=search)
             )
-            
+
         # Filtre par statut de stock
         en_stock = self.request.query_params.get('en_stock')
         if en_stock == 'true':
             queryset = queryset.filter(stock__quantite_actuelle__gt=0)
         elif en_stock == 'false':
             queryset = queryset.filter(stock__quantite_actuelle__lte=0)
-            
+
         # Trier par défaut par désignation
         return queryset.order_by('designation')
 
@@ -965,16 +966,16 @@ class ProduitViewSet(viewsets.ModelViewSet):
         """
         # Compter le nombre total de produits
         total_produits = self.get_queryset().count()
-        
+
         # Compter les produits en rupture de stock
         produits_rupture = self.get_queryset().filter(stock__quantite_actuelle__lte=0).count()
-        
+
         # Valeur totale du stock au prix d'achat et de vente
         valeurs = self.get_queryset().aggregate(
             valeur_stock_achat=Sum(F('stock__quantite_actuelle') * F('stock__prix_achat_moyen')),
             valeur_stock_vente=Sum(F('stock__quantite_actuelle') * F('prix_vente'))
         )
-        
+
         return Response({
             'total_produits': total_produits,
             'produits_rupture': produits_rupture,
@@ -985,35 +986,35 @@ class ProduitViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def mouvements(self, request, pk=None):
+    def mouvements(self, request):
         """
         Liste tous les mouvements de stock pour ce produit
         """
         produit = self.get_object()
         mouvements = MouvementStock.objects.filter(stock__produit=produit).order_by('-date_mouvement')
-        
+
         page = self.paginate_queryset(mouvements)
         if page is not None:
             serializer = MouvementStockSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-            
+
         serializer = MouvementStockSerializer(mouvements, many=True)
         return Response(serializer.data)
-        
+
     @action(detail=True, methods=['post'])
-    def mettre_a_jour_prix(self, request, pk=None):
+    def mettre_a_jour_prix(self, request):
         """
         Mettre à jour le prix de vente d'un produit
         """
         produit = self.get_object()
         nouveau_prix = request.data.get('nouveau_prix')
-        
+
         if not nouveau_prix:
             return Response(
                 {'error': 'Le champ nouveau_prix est requis'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         try:
             nouveau_prix = float(nouveau_prix)
             if nouveau_prix <= 0:
@@ -1023,16 +1024,16 @@ class ProduitViewSet(viewsets.ModelViewSet):
                 {'error': 'Le prix doit être un nombre positif'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         ancien_prix = produit.prix_vente
         produit.prix_vente = nouveau_prix
         produit.save()
-        
+
         return Response({
             'message': f'Prix mis à jour: {ancien_prix} → {nouveau_prix} Ar',
             'produit': ProduitSerializer(produit).data
         })
-        
+
     @action(detail=False, methods=['get'])
     def produits_par_categorie(self, request):
         """
@@ -1041,20 +1042,20 @@ class ProduitViewSet(viewsets.ModelViewSet):
         categories = CategorieProduit.objects.annotate(
             nb_produits=Count('produits')
         ).filter(nb_produits__gt=0).order_by('nom')
-        
+
         result = []
         for categorie in categories:
             produits = Produit.objects.filter(categorie=categorie).order_by('designation')
-            
+
             result.append({
                 'categorie': CategorieProduitSerializer(categorie).data,
                 'produits': ProduitSerializer(produits, many=True).data
             })
-            
+
         return Response(result)
-        
+
     @action(detail=True, methods=['get'])
-    def historique_prix(self, request, pk=None):
+    def historique_prix(self, request):
         """
         Retourne l'historique des prix d'achat pour ce produit
         """
@@ -1070,14 +1071,14 @@ class ProduitViewSet(viewsets.ModelViewSet):
             'fournisseur',
             'numero_facture'
         )
-        
+
         return Response(mouvements)
 
 
 @permission_required('manage_stock')
 class StockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les stocks de produits"""
-    queryset = Stock.objects.select_related('produit__unite_mesure', 'produit__categorie').all()
+    queryset = Stock.objects.select_related('produit__unite_mesure', 'produit__unite_achat', 'produit__categorie').all()
     serializer_class = StockSerializer
 
     def get_queryset(self):
@@ -1102,7 +1103,7 @@ class StockViewSet(viewsets.ModelViewSet):
 
         produit = Produit.objects.get(pk=data['produit_id'])
         stock = produit.stock
-        
+
         quantite_achat = data['quantite_achat']
         prix_total_achat = data['prix_total_achat']
 
@@ -1110,16 +1111,16 @@ class StockViewSet(viewsets.ModelViewSet):
         quantite_base = quantite_achat * produit.quantite_par_unite_achat
         if quantite_base == 0:
             return Response({'error': 'La quantité résultante ne peut pas être zéro.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         prix_unitaire_base = prix_total_achat / quantite_base
 
         # Mise à jour du prix d'achat moyen pondéré
         ancienne_valeur_stock = stock.quantite_actuelle * stock.prix_achat_moyen
         nouvelle_valeur_stock = ancienne_valeur_stock + prix_total_achat
         nouvelle_quantite_totale = stock.quantite_actuelle + quantite_base
-        
+
         stock.prix_achat_moyen = nouvelle_valeur_stock / nouvelle_quantite_totale
-        
+
         # Création du mouvement de stock
         MouvementStock.objects.create(
             stock=stock,
@@ -1134,7 +1135,7 @@ class StockViewSet(viewsets.ModelViewSet):
             commentaire=data.get('commentaire', f"Achat de {quantite_achat} {produit.unite_achat.symbole if produit.unite_achat else ''}"),
             utilisateur=request.user
         )
-        
+
         # Mettre à jour la quantité en stock directement
         stock.quantite_actuelle = nouvelle_quantite_totale
         stock.save()
@@ -1165,16 +1166,16 @@ class StockViewSet(viewsets.ModelViewSet):
             valeur_achat=F('quantite_actuelle') * F('prix_achat_moyen'),
             valeur_vente=F('quantite_actuelle') * F('produit__prix_vente')
         )
-        
-        agrégats = stocks.aggregate(
+
+        agregats = stocks.aggregate(
             valeur_achat_totale=Sum('valeur_achat'),
             valeur_vente_totale=Sum('valeur_vente')
         )
 
         return Response({
-            'valeur_stock_achat': agrégats.get('valeur_achat_totale') or 0,
-            'valeur_stock_vente': agrégats.get('valeur_vente_totale') or 0,
-            'marge_potentielle': (agrégats.get('valeur_vente_totale') or 0) - (agrégats.get('valeur_achat_totale') or 0),
+            'valeur_stock_achat': agregats.get('valeur_achat_totale') or 0,
+            'valeur_stock_vente': agregats.get('valeur_vente_totale') or 0,
+            'marge_potentielle': (agregats.get('valeur_vente_totale') or 0) - (agregats.get('valeur_achat_totale') or 0),
             'nombre_produits': stocks.count()
         })
 
@@ -1311,7 +1312,15 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
         return VenteProduitSerializer
 
     def get_queryset(self):
-        return VenteProduit.objects.select_related('produit', 'transaction').order_by('-transaction__date_transaction')
+        return VenteProduit.objects.select_related('produit', 'transaction', 'produit__stock', 'produit__unite_mesure').order_by('-transaction__date_transaction')
+
+    @action(detail=False, methods=['get'])
+    def ventes_du_jour(self, request):
+        """Retourne les ventes de produits pour la journée en cours."""
+        aujourd_hui = timezone.now().date()
+        ventes = VenteProduit.objects.filter(transaction__date_transaction__date=aujourd_hui)
+        serializer = self.get_serializer(ventes, many=True)
+        return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

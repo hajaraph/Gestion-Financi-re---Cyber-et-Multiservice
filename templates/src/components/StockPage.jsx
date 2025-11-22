@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { stockAPI } from '../services/api';
+import ConfirmModal from './ConfirmModal';
+import { FaBox, FaBoxOpen, FaSearch, FaExchangeAlt, FaPlus } from 'react-icons/fa';
 
 const StockPage = () => {
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
+  const [view, setView] = useState('list'); // 'grid' or 'list'
   
   // State for the entry modal
   const [showEntryModal, setShowEntryModal] = useState(false);
@@ -38,10 +41,13 @@ const StockPage = () => {
     }
   };
 
-  const filteredStocks = stocks.filter(stock =>
-    stock.produit?.designation?.toLowerCase().includes(search.toLowerCase()) ||
-    stock.produit?.reference?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStocks = stocks.filter(stock => {
+    const designation = stock.nom_produit?.toLowerCase() || ''; // Corrected
+    const reference = stock.code_produit?.toLowerCase() || ''; // Corrected
+    const searchTerm = search.toLowerCase();
+    const matches = designation.includes(searchTerm) || reference.includes(searchTerm);
+    return matches;
+  });
 
   const stats = stocks.reduce((acc, stock) => {
     acc.totalValeurAchat += Number(stock.valeur_stock_achat || 0);
@@ -81,7 +87,7 @@ const StockPage = () => {
     setEntryErrors({});
     try {
       const payload = {
-        produit_id: currentStock.produit.id,
+        produit_id: currentStock.produit_id,
         ...entryForm,
       };
       const result = await stockAPI.recordEntry(payload);
@@ -102,8 +108,8 @@ const StockPage = () => {
   const renderStockListItem = (stock) => (
     <tr key={stock.id} className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900">{stock.produit?.designation}</div>
-        <div className="text-sm text-gray-500">{stock.produit?.reference}</div>
+        <div className="text-sm font-medium text-gray-900">{stock.nom_produit}</div>
+        <div className="text-sm text-gray-500">{stock.code_produit}</div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-center">
         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -114,10 +120,10 @@ const StockPage = () => {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-800">
-        {parseFloat(stock.quantite_actuelle).toLocaleString()} ({stock.produit?.unite_mesure_symbole})
+        {parseFloat(stock.quantite_actuelle).toLocaleString()} {stock.unite_mesure_produit}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-        {parseFloat(stock.quantite_minimale).toLocaleString()} ({stock.produit?.unite_mesure_symbole})
+        {parseFloat(stock.quantite_minimale).toLocaleString()} {stock.unite_mesure_produit}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-800">
         {(stock.valeur_stock_vente || 0).toLocaleString('fr-FR')} Ar
@@ -174,7 +180,10 @@ const StockPage = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-10">Chargement...</div>
+        <div className="p-8 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des stocks...</p>
+        </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -199,7 +208,7 @@ const StockPage = () => {
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">Ajouter au Stock: {currentStock?.produit?.designation}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Ajouter au Stock: {currentStock?.nom_produit}</h3> {/* Corrected */}
               <button onClick={() => setShowEntryModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingEntry}>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -209,11 +218,11 @@ const StockPage = () => {
             <form onSubmit={handleRecordEntry} className="p-6 space-y-4">
               {entryErrors.general && <p className="text-red-500 text-sm mt-2">{entryErrors.general}</p>}
               <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  Vous achetez en <span className="font-bold">{currentStock?.produit?.unite_achat_nom || 'unité'}</span>. Le stock sera mis à jour en <span className="font-bold">{currentStock?.produit?.unite_mesure_nom || 'unité'}</span>.
+                  Vous achetez en <span className="font-bold">{currentStock?.unite_mesure_produit || 'unité'}</span>. Le stock sera mis à jour en <span className="font-bold">{currentStock?.unite_mesure_produit || 'unité'}</span>. {/* Corrected */}
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Quantité Achetée ({currentStock?.produit?.unite_achat_symbole})</label>
+                  <label className="block text-sm font-medium text-gray-700">Quantité Achetée ({currentStock?.unite_mesure_produit})</label> {/* Corrected */}
                   <input
                     type="number"
                     required

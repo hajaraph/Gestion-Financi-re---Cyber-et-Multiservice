@@ -108,7 +108,6 @@ export const authAPI = {
 
 // Services pour les transactions
 export const transactionAPI = {
-  // Récupérer toutes les transactions
   getAll: async (params = {}) => {
     try {
       const response = await apiClient.get('/api/transactions/', { params });
@@ -124,7 +123,6 @@ export const transactionAPI = {
     }
   },
 
-  // Créer une nouvelle transaction
   create: async (transactionData) => {
     try {
       const response = await apiClient.post('/api/transactions/', transactionData);
@@ -140,7 +138,6 @@ export const transactionAPI = {
     }
   },
 
-  // Résumé journalier
   getDailySummary: async () => {
     try {
       const response = await apiClient.get('/api/transactions/resume_journalier/');
@@ -156,7 +153,6 @@ export const transactionAPI = {
     }
   },
 
-  // Résumé mensuel
   getMonthlySummary: async () => {
     try {
       const response = await apiClient.get('/api/transactions/resume_mensuel/');
@@ -538,6 +534,26 @@ export const stockAPI = {
       return { success: false, error: error.response?.data || error.message };
     }
   },
+  adjustStock: async (id, payload) => { // Nouvelle fonction pour ajuster le stock
+    try {
+      const response = await apiClient.post(`/api/stocks/${id}/ajuster_stock/`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  delete: async (id) => {
+    try {
+      await apiClient.delete(`/api/stocks/${id}/`);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+        statusCode: error.response?.status
+      };
+    }
+  }
 };
 
 // Services pour les produits (liste pour listes déroulantes)
@@ -574,7 +590,7 @@ export const produitAPI = {
       return {
         success: false,
         error: error.response?.data || error.message,
-        statusCode: error.response?.status // Ajout du statut HTTP
+        statusCode: error.response?.status
       };
     }
   }

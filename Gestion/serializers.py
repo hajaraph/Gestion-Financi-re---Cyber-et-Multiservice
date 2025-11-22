@@ -6,14 +6,14 @@ from .models import (
     TarifService, VenteProduit, ServicePersonnalise, PalierRemise,
     Permission, Role, ProfilUtilisateur, Stock, MouvementStock, Produit, CategorieProduit, UniteMesure,
     VenteGroupee, LigneDeVente, ConsommationService,
-    CompanySettings # Import the new model
+    ParametreEntreprise # Import the new model
 )
 
 
 # New Serializer for CompanySettings
-class CompanySettingsSerializer(serializers.ModelSerializer):
+class ParametreEntrepriseSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CompanySettings
+        model = ParametreEntreprise
         fields = '__all__'
 
 

@@ -10,14 +10,14 @@ import uuid
 
 # Create your models here.
 
-class CompanySettings(models.Model):
+class ParametreEntreprise(models.Model):
     """
     Modèle pour stocker les paramètres généraux de l'entreprise.
     Conçu comme un singleton pour n'avoir qu'une seule instance.
     """
-    company_name = models.CharField(max_length=255, default="Mon Cyber")
+    nom_entreprise = models.CharField(max_length=255, default="Mon Cyber")
     address = models.CharField(max_length=255, blank=True)
-    phone = models.CharField(max_length=20, blank=True)
+    contact = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
     default_currency = models.CharField(max_length=10, default="Ar", help_text="Devise par défaut (ex: Ar, EUR, USD)")
@@ -32,12 +32,12 @@ class CompanySettings(models.Model):
         verbose_name_plural = "Paramètres de l'entreprise"
 
     def __str__(self):
-        return f"Paramètres de {self.company_name}"
+        return f"Paramètres de {self.nom_entreprise}"
 
     def save(self, *args, **kwargs):
         # Assure qu'il n'y a qu'une seule instance de ce modèle
-        if CompanySettings.objects.exists() and not self.pk:
-            raise ValidationError("Il ne peut y avoir qu'une seule instance de CompanySettings.")
+        if ParametreEntreprise.objects.exists() and not self.pk:
+            raise ValidationError("Il ne peut y avoir qu'une seule instance de ParametreEntreprise.")
         super().save(*args, **kwargs)
 
     @classmethod
@@ -622,7 +622,7 @@ class CategorieProduit(models.Model):
         verbose_name = "Catégorie de produit"
         verbose_name_plural = "Catégories de produits"
         ordering = ['nom']
-    
+
     def __str__(self):
         return self.nom
 
@@ -632,11 +632,11 @@ class UniteMesure(models.Model):
     nom = models.CharField(max_length=20, unique=True)
     symbole = models.CharField(max_length=10)
     description = models.TextField(blank=True)
-    
+
     class Meta:
         verbose_name = "Unité de mesure"
         verbose_name_plural = "Unités de mesure"
-    
+
     def __str__(self):
         return f"{self.nom} ({self.symbole})"
 
@@ -647,7 +647,7 @@ class Produit(models.Model):
     designation = models.CharField(max_length=200)
     reference = models.CharField(max_length=50, unique=True, default=uuid.uuid4, editable=False)
     description = models.TextField(blank=True)
-    
+
     # Catégorisation
     categorie = models.ForeignKey(
         CategorieProduit,
@@ -691,12 +691,12 @@ class Produit(models.Model):
         max_digits=10, decimal_places=2, default=1,
         help_text="Facteur de conversion (ex: 500 si 1 rame = 500 feuilles)"
     )
-    
+
     # Métadonnées
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     actif = models.BooleanField(default=True)
-    
+
     class Meta:
         verbose_name = "Produit"
         verbose_name_plural = "Produits"
@@ -765,7 +765,7 @@ class Stock(models.Model):
         default=0,
         help_text="Capacité maximale de stockage (en unité de base)"
     )
-    
+
     # Coût
     prix_achat_moyen = models.DecimalField(
         max_digits=10, decimal_places=2, default=0,

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status
@@ -934,7 +936,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
                 Q(description__icontains=search)
             )
 
-        # Filtre par statut de stock
+        # Filtrer par statut de stock
         en_stock = self.request.query_params.get('en_stock')
         if en_stock == 'true':
             queryset = queryset.filter(stock__quantite_actuelle__gt=0)
@@ -980,7 +982,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
 
         page = self.paginate_queryset(mouvements)
         if page is not None:
-            serializer = MouvementStockSerializer(page, many=True)
+            serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
         serializer = MouvementStockSerializer(mouvements, many=True)
@@ -1137,6 +1139,49 @@ class StockViewSet(viewsets.ModelViewSet):
 
         return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post']) # Nouvel endpoint pour l'ajustement
+    def ajuster_stock(self, request, pk=None):
+        stock = self.get_object()
+        quantite_ajustement_raw = request.data.get('quantite')
+        type_ajustement = request.data.get('type_ajustement') # 'AUGMENTATION' ou 'DIMINUTION'
+        commentaire = request.data.get('commentaire', 'Ajustement manuel')
+
+        if quantite_ajustement_raw is None or not isinstance(quantite_ajustement_raw, (int, float)):
+            return Response({'error': 'La quantité d\'ajustement est requise et doit être un nombre.'}, status=status.HTTP_400_BAD_REQUEST)
+        if type_ajustement not in ['AUGMENTATION', 'DIMINUTION']:
+            return Response({'error': 'Le type d\'ajustement doit être "AUGMENTATION" ou "DIMINUTION".'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convertir la quantité d'ajustement en Decimal
+        quantite_ajustement = Decimal(str(quantite_ajustement_raw))
+        
+        quantite_avant = stock.quantite_actuelle
+
+        if type_ajustement == 'AUGMENTATION':
+            stock.quantite_actuelle += quantite_ajustement
+            type_mouvement = 'ENTREE'
+        else: # DIMINUTION
+            if stock.quantite_actuelle < quantite_ajustement:
+                return Response({'error': 'La quantité à diminuer est supérieure au stock actuel.'}, status=status.HTTP_400_BAD_REQUEST)
+            stock.quantite_actuelle -= quantite_ajustement
+            type_mouvement = 'SORTIE'
+
+        stock.save()
+
+        MouvementStock.objects.create(
+            stock=stock,
+            type_mouvement=type_mouvement,
+            motif='AJUSTEMENT',
+            quantite=quantite_ajustement,
+            quantite_avant=quantite_avant,
+            quantite_apres=stock.quantite_actuelle,
+            prix_unitaire=stock.prix_achat_moyen if type_mouvement == 'ENTREE' else 0, # Prix d'achat moyen pour les entrées d'ajustement
+            commentaire=commentaire,
+            utilisateur=request.user
+        )
+
+        serializer = self.get_serializer(stock)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'])
     def alertes(self, request):
         """Récupérer les alertes de stock (ruptures et réapprovisionnements)"""
@@ -1173,6 +1218,17 @@ class StockViewSet(viewsets.ModelViewSet):
             'marge_potentielle': (agregats.get('valeur_vente_totale') or 0) - (agregats.get('valeur_achat_totale') or 0),
             'nombre_produits': stocks.count()
         })
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            error_message = str(e).split('\n')[0]
+            return Response(
+                {'detail': error_message},
+                status=status.HTTP_409_CONFLICT
+            )
+
 
 class MouvementStockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les mouvements de stock"""

@@ -205,37 +205,54 @@ const TarifsPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produits Consommés</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTarifs.map(tarif => (
-              <tr key={tarif.id}>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{tarif.nom_service}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {tarif.consommations.map(c => `${c.produit_nom} (x${c.quantite})`).join(', ') || 'Aucun'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">{tarif.prix_unitaire} Ar</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => handleEdit(tarif)} className="text-blue-600 hover:text-blue-900" title="Modifier le tarif">
-                      <FaEdit />
-                    </button>
-                    <button onClick={() => handleDeleteClick(tarif)} className="text-red-600 hover:text-red-900" title="Supprimer le tarif">
-                      <FaTrash />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des tarifs...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produits Consommés</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTarifs.map(tarif => (
+                  <tr key={tarif.id}>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{tarif.nom_service}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {tarif.consommations.map(c => `${c.produit_nom} (x${c.quantite})`).join(', ') || 'Aucun'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">{tarif.prix_unitaire} Ar</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => handleEdit(tarif)} className="text-blue-600 hover:text-blue-900" title="Modifier le tarif">
+                          <FaEdit />
+                        </button>
+                        <button onClick={() => handleDeleteClick(tarif)} className="text-red-600 hover:text-red-900" title="Supprimer le tarif">
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredTarifs.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p>Aucun tarif trouvé</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (

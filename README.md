@@ -1,4 +1,4 @@
-# API de Gestion Financière - Cyber et Multiservice
+# API de Gestion Financière - Cyber et Multiservice (Django)
 
 ## Vue d'ensemble
 Cette API REST permet de gérer les recettes et dépenses d'un cyber café et centre multiservice, ainsi que les stocks, les produits, les tarifs et les paramètres de l'entreprise.

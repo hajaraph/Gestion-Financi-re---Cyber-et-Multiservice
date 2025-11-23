@@ -1,0 +1,9 @@
+.venv
+Finance/__pycache__
+Gestion/__pycache__
+*.db
+*.sqlite3
+*.csv
+*.log
+*.env
+.idea

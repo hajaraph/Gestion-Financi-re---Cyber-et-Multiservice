@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status
@@ -10,12 +8,13 @@ from django.db.models import Sum, Count, Q, F, ProtectedError # Import Protected
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import QuerySet
+from decimal import Decimal # Import Decimal
 from .models import (
     CategorieService, Transaction,
     Depense, TypePapier,
     TarifService, ServicePersonnalise, PalierRemise, Permission, Role, ProfilUtilisateur,
     Stock, MouvementStock, Produit, CategorieProduit, UniteMesure, VenteProduit,
-    VenteGroupee
+    VenteGroupee, ParametreEntreprise
 )
 from .serializers import (
     CategorieServiceSerializer, TransactionSerializer, DepenseSerializer,
@@ -27,7 +26,8 @@ from .serializers import (
     StockSerializer, MouvementStockSerializer, MouvementStockCreateSerializer,
     ProduitSerializer, CategorieProduitSerializer, UniteMesureSerializer, EntreeStockSerializer,
     VenteProduitSerializer, VenteProduitCreateSerializer,
-    VenteGroupeeSerializer, VenteGroupeeCreateSerializer, DepenseCreateSerializer
+    VenteGroupeeSerializer, VenteGroupeeCreateSerializer, DepenseCreateSerializer,
+    ParametreEntrepriseSerializer
 )
 
 # Imports pour la génération de PDF
@@ -348,7 +348,7 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
             'permissions_effectives': profil.obtenir_toutes_permissions()
         })
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def mon_profil(self, request):
         """Obtenir le profil de l'utilisateur connecté"""
         if hasattr(request.user, 'profil'):
@@ -360,6 +360,54 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_404_NOT_FOUND)
 
 # Create your views here.
+
+# Nouveau ViewSet pour ParametreEntreprise
+class ParametreEntrepriseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les paramètres généraux de l'entreprise.
+    Conçu comme un singleton, il n'y a qu'une seule instance à gérer.
+    """
+    queryset = ParametreEntreprise.objects.all()
+    serializer_class = ParametreEntrepriseSerializer
+    permission_classes = [lambda: CustomPermission('manage_system')] # Nécessite une permission d'administration système
+
+    def get_object(self):
+        """
+        Retourne l'unique instance de ParametreEntreprise.
+        Crée une instance si elle n'existe pas encore.
+        """
+        return ParametreEntreprise.load()
+
+    def list(self, request, *args, **kwargs):
+        """
+        Retourne l'unique instance au lieu d'une liste.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Empêche la création de nouvelles instances, car c'est un singleton.
+        L'instance est créée automatiquement via get_object/load().
+        """
+        return Response(
+            {"detail": "La création directe n'est pas autorisée pour ParametreEntreprise. Utilisez la mise à jour."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Empêche la suppression de l'unique instance de ParametreEntreprise.
+        """
+        return Response(
+            {"detail": "La suppression n'est pas autorisée pour ParametreEntreprise."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    # Les méthodes update et partial_update fonctionneront normalement
+    # car get_object() retourne l'instance unique.
+
 
 class CategorieServiceViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les catégories de services"""
@@ -913,7 +961,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour gérer les produits avec suivi de stock et de prix
     """
-    queryset = Produit.objects.all()
+    queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
     serializer_class = ProduitSerializer
 
     def get_queryset(self):
@@ -922,12 +970,12 @@ class ProduitViewSet(viewsets.ModelViewSet):
         """
         queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
 
-        # Filtre par catégorie
+        # Filtrer par catégorie
         categorie_id = self.request.query_params.get('categorie_id')
         if categorie_id:
             queryset = queryset.filter(categorie_id=categorie_id)
 
-        # Filtre par terme de recherche
+        # Filtrer par terme de recherche
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -1072,11 +1120,19 @@ class ProduitViewSet(viewsets.ModelViewSet):
             )
 
 
-@permission_required('manage_stock')
 class StockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les stocks de produits"""
     queryset = Stock.objects.select_related('produit__unite_mesure', 'produit__unite_achat', 'produit__categorie').all()
     serializer_class = StockSerializer
+
+    def get_permissions(self):
+        """
+        Instancie et retourne la liste des permissions que cette vue requiert.
+        """
+        if self.action in ['list', 'retrieve', 'alertes', 'valeurs']:
+            return [CustomPermission('view_produit')]
+        else:
+            return [CustomPermission('manage_stock')]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -1140,7 +1196,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post']) # Nouvel endpoint pour l'ajustement
-    def ajuster_stock(self, request, pk=None):
+    def ajuster_stock(self, request):
         stock = self.get_object()
         quantite_ajustement_raw = request.data.get('quantite')
         type_ajustement = request.data.get('type_ajustement') # 'AUGMENTATION' ou 'DIMINUTION'
@@ -1174,8 +1230,43 @@ class StockViewSet(viewsets.ModelViewSet):
             quantite=quantite_ajustement,
             quantite_avant=quantite_avant,
             quantite_apres=stock.quantite_actuelle,
-            prix_unitaire=stock.prix_achat_moyen if type_mouvement == 'ENTREE' else 0, # Prix d'achat moyen pour les entrées d'ajustement
+            prix_unitaire=stock.prix_achat_moyen if type_mouvement == 'ENTREE' else Decimal('0'),
             commentaire=commentaire,
+            utilisateur=request.user
+        )
+
+        serializer = self.get_serializer(stock)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post']) # Nouvel endpoint pour la réévaluation du prix moyen
+    def revaluer_prix_moyen(self, request):
+        stock = self.get_object()
+        nouveau_prix_achat_moyen_raw = request.data.get('nouveau_prix_achat_moyen')
+        commentaire = request.data.get('commentaire', 'Réévaluation manuelle du prix moyen')
+
+        if nouveau_prix_achat_moyen_raw is None or not isinstance(nouveau_prix_achat_moyen_raw, (int, float)):
+            return Response({'error': 'Le nouveau prix d\'achat moyen est requis et doit être un nombre.'}, status=status.HTTP_400_BAD_REQUEST)
+        if float(nouveau_prix_achat_moyen_raw) < 0:
+            return Response({'error': 'Le prix d\'achat moyen ne peut pas être négatif.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        nouveau_prix_achat_moyen = Decimal(str(nouveau_prix_achat_moyen_raw))
+        ancien_prix_achat_moyen = stock.prix_achat_moyen
+
+        if nouveau_prix_achat_moyen == ancien_prix_achat_moyen:
+            return Response({'message': 'Le nouveau prix moyen est identique à l\'ancien, aucune réévaluation nécessaire.'}, status=status.HTTP_200_OK)
+
+        stock.prix_achat_moyen = nouveau_prix_achat_moyen
+        stock.save()
+
+        MouvementStock.objects.create(
+            stock=stock,
+            type_mouvement='ENTREE' if nouveau_prix_achat_moyen > ancien_prix_achat_moyen else 'SORTIE', # Indique si la valeur a augmenté ou diminué
+            motif='REVALUATION',
+            quantite=Decimal('0'), # Pas de changement de quantité physique
+            quantite_avant=stock.quantite_actuelle,
+            quantite_apres=stock.quantite_actuelle,
+            prix_unitaire=nouveau_prix_achat_moyen, # On enregistre le nouveau prix moyen comme référence
+            commentaire=f"{commentaire}. Ancien prix: {ancien_prix_achat_moyen}, Nouveau prix: {nouveau_prix_achat_moyen}",
             utilisateur=request.user
         )
 
@@ -1383,7 +1474,7 @@ class VenteGroupeViewSet(viewsets.ModelViewSet):
         return VenteGroupeeSerializer
 
     @action(detail=True, methods=['get'])
-    def imprimer_facture(self, request, pk=None):
+    def imprimer_facture(self, request):
         try:
             vente = self.get_object()
             template = get_template('invoice_template.html')

@@ -21,6 +21,7 @@ router.register(r'categorie-produits', views.CategorieProduitViewSet)
 router.register(r'unite-mesures', views.UniteMesureViewSet)
 router.register(r'vente-produits', views.VenteProduitViewSet)
 router.register(r'ventes-groupees', views.VenteGroupeViewSet)
+router.register(r'parametres-entreprise', views.ParametreEntrepriseViewSet) # Ajouté pour les paramètres de l'entreprise
 
 # URLs spécifiques pour l'authentification
 urlpatterns = [

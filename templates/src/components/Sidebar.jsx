@@ -8,6 +8,16 @@ const Sidebar = ({ user, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Fonction pour vérifier si l'utilisateur a une permission spécifique
+  const hasPermission = (permissionCode) => {
+    // Si l'utilisateur est superuser, il a toutes les permissions
+    if (user?.is_superuser) {
+      return true;
+    }
+    // Vérifier si l'objet user et ses permissions existent
+    return user?.permissions?.includes(permissionCode);
+  };
+
   // Menu basé sur vos modèles Django de gestion de cyber café
   const menuItems = [
     {
@@ -20,7 +30,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/dashboard',
-      description: 'Vue d\'ensemble des activités'
+      description: 'Vue d\'ensemble des activités',
+      permission: null // Aucune permission spécifique requise pour le tableau de bord
     },
     {
       id: 'vente-produits',
@@ -31,7 +42,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/vente-produits',
-      description: 'Enregistrer la vente de produits'
+      description: 'Enregistrer la vente de produits',
+      permission: 'add_recette'
     },
     {
       id: 'multiservices',
@@ -42,7 +54,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/multiservices',
-      description: 'Photocopie, reliure, plastification, scan'
+      description: 'Photocopie, reliure, plastification, scan',
+      permission: 'add_recette'
     },
     {
       id: 'depenses',
@@ -53,18 +66,20 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/depenses',
-      description: 'Électricité, maintenance, fournitures'
+      description: 'Électricité, maintenance, fournitures',
+      permission: 'view_depense'
     },
     {
       id: 'tarifs',
       name: 'Tarifs Services',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H7zM14 9a1 1 0 10-2 0v6a1 1 0 102 0V9z" clipRule="evenodd"/>
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H7zM14 9a1 1 0 10-2 0v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd"/>
         </svg>
       ),
       path: '/tarifs',
-      description: 'Gestion des prix et tarifs'
+      description: 'Gestion des prix et tarifs',
+      permission: 'view_tarif'
     },
     {
       id: 'utilisateurs',
@@ -75,7 +90,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/utilisateurs',
-      description: 'Gestion des profils utilisateurs'
+      description: 'Gestion des profils utilisateurs',
+      permission: 'manage_users'
     },
     {
       id: 'stock',
@@ -87,7 +103,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/stock',
-      description: 'Gestion des stocks et inventaire'
+      description: 'Gestion des stocks et inventaire',
+      permission: 'view_produit'
     },
     {
       id: 'produits',
@@ -98,7 +115,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/produits',
-      description: 'Enregistrer et gérer les produits'
+      description: 'Enregistrer et gérer les produits',
+      permission: 'view_produit' // CORRECTION: Changé de 'manage_produits' à 'view_produit'
     },
     {
       id: 'parametres',
@@ -109,7 +127,8 @@ const Sidebar = ({ user, onLogout }) => {
         </svg>
       ),
       path: '/parametres',
-      description: 'Configuration du système'
+      description: 'Configuration du système',
+      permission: 'manage_system'
     },
   ];
 
@@ -171,6 +190,11 @@ const Sidebar = ({ user, onLogout }) => {
       <nav className="mt-8">
         <ul className="space-y-2 px-4">
           {menuItems.map((item) => {
+            // Afficher l'élément de menu seulement si l'utilisateur a la permission requise
+            if (item.permission && !hasPermission(item.permission)) {
+              return null;
+            }
+
             const isActive = getActiveMenu() === item.id;
 
             return (
@@ -179,7 +203,7 @@ const Sidebar = ({ user, onLogout }) => {
                   onClick={() => handleMenuClick(item.path)}
                   className={`w-full flex items-center p-3 rounded-lg transition-colors group relative
                     ${isActive
-                      ? 'bg-blue-600 text-white shadow-lg' 
+                      ? 'bg-blue-600 text-white shadow-lg'
                       : 'hover:bg-gray-800 text-gray-300 hover:text-white'
                     }
                   `}
@@ -238,7 +262,7 @@ const Sidebar = ({ user, onLogout }) => {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {user?.is_superuser ? 'Admin' : 'Utilisateur'}
+                  {user?.is_superuser ? 'Admin' : (user?.role_nom || 'Utilisateur')}
                 </span>
               </div>
               <div className="flex items-center mt-1">

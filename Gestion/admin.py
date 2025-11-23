@@ -14,7 +14,7 @@ class CategorieServiceAdmin(admin.ModelAdmin):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ['type_transaction', 'montant', 'description', 'date_transaction', 'utilisateur']
-    list_filter = ['type_transaction', 'date_transaction', 'categorie_service']
+    list_filter = ['type_transaction', 'date_transaction'] # 'categorie_service' supprimé
     search_fields = ['description']
     date_hierarchy = 'date_transaction'
 
@@ -50,9 +50,19 @@ class HasRemiseFilter(admin.SimpleListFilter):
 
 @admin.register(ServicePersonnalise)
 class ServicePersonnaliseAdmin(admin.ModelAdmin):
-    list_display = ['transaction', 'tarif_service', 'quantite', 'prix_unitaire_original', 'prix_unitaire_utilise', 'remise_appliquee']
+    list_display = ['transaction', 'tarif_service', 'quantite', 'get_prix_unitaire_original', 'get_prix_unitaire_utilise', 'remise_appliquee']
     list_filter = ['tarif_service__categorie', HasRemiseFilter]
     search_fields = ['tarif_service__nom_service']
+
+    def get_prix_unitaire_original(self, obj):
+        return obj.tarif_service.prix_unitaire
+    get_prix_unitaire_original.short_description = "Prix Unitaire Original"
+    get_prix_unitaire_original.admin_order_field = 'tarif_service__prix_unitaire'
+
+    def get_prix_unitaire_utilise(self, obj):
+        return obj.prix_unitaire_negocie if obj.prix_unitaire_negocie is not None else obj.tarif_service.prix_unitaire
+    get_prix_unitaire_utilise.short_description = "Prix Unitaire Utilisé"
+    # Pas de admin_order_field direct car c'est une logique conditionnelle
 
 @admin.register(PalierRemise)
 class PalierRemiseAdmin(admin.ModelAdmin):

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
-import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
+import NotificationIcon from './common/NotificationIcon';
 import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch } from 'react-icons/fa';
 
 const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
@@ -208,6 +208,29 @@ const Multiservice = () => {
         loadData();
     }, []);
 
+    const dashboardStats = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const ventesAujourdhui = ventes.filter(v => v.date_creation.startsWith(today));
+        
+        const totalVendu = ventesAujourdhui.reduce((acc, v) => acc + parseFloat(v.transaction.montant), 0);
+        const nombreVentes = ventesAujourdhui.length;
+
+        const servicesLesPlusVendus = ventesAujourdhui
+            .flatMap(v => v.lignes)
+            .reduce((acc, ligne) => {
+                acc[ligne.tarif_service_nom] = (acc[ligne.tarif_service_nom] || 0) + parseFloat(ligne.quantite);
+                return acc;
+            }, {});
+
+        const serviceTop = Object.entries(servicesLesPlusVendus).sort((a, b) => b[1] - a[1])[0];
+
+        return {
+            totalVendu,
+            nombreVentes,
+            serviceTop: serviceTop ? `${serviceTop[0]} (x${serviceTop[1]})` : 'N/A',
+        };
+    }, [ventes]);
+
     const notify = (message, type = 'success') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 4000);
@@ -264,7 +287,23 @@ const Multiservice = () => {
 
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">Ventes Multiservices</h1>
-                <p className="text-gray-600">Historique des ventes groupées.</p>
+                <p className="text-gray-600">Historique et enregistrement des ventes groupées.</p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="text-gray-500 text-sm">Total Vendu (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold text-green-600">{dashboardStats.totalVendu.toLocaleString('fr-FR')} Ar</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="text-gray-500 text-sm">Nombre de Ventes (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold">{dashboardStats.nombreVentes}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="text-gray-500 text-sm">Top Service (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold truncate">{dashboardStats.serviceTop}</div>
+                </div>
             </div>
 
             <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">

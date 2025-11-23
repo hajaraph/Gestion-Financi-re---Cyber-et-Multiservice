@@ -6,21 +6,37 @@ import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import TarifsPage from './components/TarifsPage';
 import StockPage from './components/StockPage';
-import { authAPI } from './services/api';
+import { authAPI, profilAPI } from './services/api'; // Import de profilAPI
 import ProduitsPage from './components/ProduitsPage';
 import VenteProduitPage from './components/VenteProduitPage';
 import Multiservice from './components/Multiservice';
 import DepensesPage from './components/DepensesPage';
+import ParametresPage from './components/ParametresPage';
+import UserManagementPage from './components/UserManagementPage'; // Import du nouveau composant
 
 // Composants de pages (à créer)
 const CategoriesPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Catégories Services</h1><p>Types de services</p></div>;
-const UtilisateursPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Utilisateurs</h1><p>Gestion des profils</p></div>;
-const ParametresPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Paramètres</h1><p>Configuration système</p></div>;
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fonction pour charger le profil utilisateur complet
+  const loadUserProfile = async () => {
+    const profileResult = await profilAPI.getMyProfile();
+    if (profileResult.success) {
+      // CORRECTION : Utiliser directement les données du profil et ajouter un champ 'permissions' pour la commodité
+      const fullUser = {
+        ...profileResult.data, // Contient déjà username, email, is_superuser, role, etc.
+        permissions: profileResult.data.permissions_effectives, // Simplifier l'accès aux permissions
+      };
+      setUser(fullUser);
+      return fullUser;
+    }
+    return null;
+  };
 
   // Vérifier si l'utilisateur est déjà connecté au chargement de l'application
   useEffect(() => {
@@ -28,13 +44,20 @@ function App() {
       const token = localStorage.getItem('authToken');
 
       if (token) {
-        // Utiliser le service API centralisé pour vérifier le token
         const result = await authAPI.verifyToken();
 
         if (result.success && result.data.valid) {
-          // Token valide, connecter l'utilisateur
-          setIsAuthenticated(true);
-          setUser(result.data.user);
+          // Token valide, charger le profil utilisateur complet
+          const fullUser = await loadUserProfile();
+          if (fullUser) {
+            setIsAuthenticated(true);
+          } else {
+            // Échec du chargement du profil, déconnecter
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            setIsAuthenticated(false);
+            setUser(null);
+          }
         } else {
           // Token invalide, nettoyer le localStorage
           localStorage.removeItem('authToken');
@@ -61,16 +84,16 @@ function App() {
   // Fonction appelée lors de la tentative de connexion
   const handleLogin = async (userData) => {
     try {
-      // Vérifier que les données utilisateur sont valides
       if (userData && userData.token) {
-        // Sauvegarder les informations d'authentification
         localStorage.setItem('authToken', userData.token);
         localStorage.setItem('userData', JSON.stringify(userData));
 
-        // Mettre à jour l'état
-        setIsAuthenticated(true);
-        setUser(userData);
-        return true;
+        // Après une connexion réussie, charger le profil complet
+        const fullUser = await loadUserProfile();
+        if (fullUser) {
+          setIsAuthenticated(true);
+          return true;
+        }
       }
       return false;
     } catch (error) {
@@ -83,19 +106,15 @@ function App() {
   const handleLogout = async () => {
     const rememberUser = localStorage.getItem('rememberUser');
 
-    // Utiliser le service API centralisé pour la déconnexion
     await authAPI.logout();
 
-    // Supprimer les données d'authentification
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
 
-    // Garder le nom d'utilisateur si "rester connecté" était coché
     if (!rememberUser) {
       localStorage.removeItem('rememberUser');
     }
 
-    // Mettre à jour l'état
     setIsAuthenticated(false);
     setUser(null);
   };
@@ -124,10 +143,8 @@ function App() {
     <Router>
       <div className="app">
         {!isAuthenticated ? (
-          // Afficher le formulaire de connexion
           <Login onLogin={handleLogin} />
         ) : (
-          // Interface principale avec routage
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={
@@ -172,7 +189,7 @@ function App() {
             } />
             <Route path="/utilisateurs" element={
               <MainLayout>
-                <UtilisateursPage />
+                <UserManagementPage user={user} />
               </MainLayout>
             } />
             <Route path="/parametres" element={

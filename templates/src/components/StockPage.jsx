@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {stockAPI} from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import {FaBalanceScale, FaPlus} from 'react-icons/fa'; // Ajout de FaMinus et FaBalanceScale
+import {FaBalanceScale, FaDollarSign, FaPlus} from 'react-icons/fa'; // Ajout de FaDollarSign
 
 const StockPage = () => {
   const [stocks, setStocks] = useState([]);
@@ -32,9 +32,23 @@ const StockPage = () => {
     commentaire: '',
   });
 
+  // State for the revaluation modal
+  const [showRevaluationModal, setShowRevaluationModal] = useState(false);
+  const [isSubmittingRevaluation, setIsSubmittingRevaluation] = useState(false);
+  const [revaluationErrors, setRevaluationErrors] = useState({});
+  const [revaluationForm, setRevaluationForm] = useState({
+    nouveau_prix_achat_moyen: '',
+    commentaire: '',
+  });
+
   useEffect(() => {
     loadStocks();
   }, []);
+
+  const notify = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const loadStocks = async () => {
     setLoading(true);
@@ -43,7 +57,11 @@ const StockPage = () => {
       if (result.success) {
         setStocks(result.data);
       } else {
-        notify(result.error || 'Erreur de chargement', 'error');
+        // CORRECTION: Gérer le cas où l'erreur est un objet
+        const errorMessage = typeof result.error === 'object' && result.error.detail 
+          ? result.error.detail 
+          : result.error || 'Erreur de chargement';
+        notify(errorMessage, 'error');
       }
     } finally {
       setLoading(false);
@@ -68,12 +86,6 @@ const StockPage = () => {
     }
     return acc;
   }, { totalValeurAchat: 0, totalValeurVente: 0, ruptures: 0, reappro: 0 });
-
-
-  const notify = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   const openEntryModal = (stock) => {
     setCurrentStock(stock);
@@ -151,6 +163,42 @@ const StockPage = () => {
     }
   };
 
+  const openRevaluationModal = (stock) => {
+    setCurrentStock(stock);
+    setRevaluationForm({
+      nouveau_prix_achat_moyen: stock.prix_achat_moyen || '',
+      commentaire: '',
+    });
+    setRevaluationErrors({});
+    setShowRevaluationModal(true);
+  };
+
+  const handleRevaluation = async (e) => {
+    e.preventDefault();
+    if (!currentStock) return;
+    setIsSubmittingRevaluation(true);
+    setRevaluationErrors({});
+
+    try {
+      const payload = {
+        nouveau_prix_achat_moyen: parseFloat(revaluationForm.nouveau_prix_achat_moyen),
+        commentaire: revaluationForm.commentaire,
+      };
+      const result = await stockAPI.revalueStockPrice(currentStock.id, payload);
+      if (result.success) {
+        await loadStocks();
+        setShowRevaluationModal(false);
+        notify('Prix d\'achat moyen réévalué avec succès');
+      } else {
+        const err = result.error;
+        if (err && typeof err === 'object') setRevaluationErrors(err);
+        else setRevaluationErrors({ general: err });
+      }
+    } finally {
+      setIsSubmittingRevaluation(false);
+    }
+  };
+
   const renderStockListItem = (stock) => (
     <tr key={stock.id} className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
@@ -176,11 +224,14 @@ const StockPage = () => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex justify-end gap-2">
-            <button onClick={() => openEntryModal(stock)} className="text-blue-600 hover:text-blue-900 flex items-center gap-1" title="Ajouter au stock">
+            <button onClick={() => openEntryModal(stock)} className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer" title="Ajouter au stock">
                 <FaPlus /> Ajouter au stock
             </button>
-            <button onClick={() => openAdjustmentModal(stock)} className="text-purple-600 hover:text-purple-900 flex items-center gap-1" title="Ajuster le stock">
+            <button onClick={() => openAdjustmentModal(stock)} className="text-purple-600 hover:text-purple-900 flex items-center gap-1 cursor-pointer" title="Ajuster le stock">
                 <FaBalanceScale /> Ajuster
+            </button>
+            <button onClick={() => openRevaluationModal(stock)} className="text-green-600 hover:text-green-900 flex items-center gap-1 cursor-pointer" title="Réévaluer le prix moyen">
+                <FaDollarSign /> Réévaluer Prix
             </button>
         </div>
       </td>
@@ -383,6 +434,54 @@ const StockPage = () => {
                 <button type="button" onClick={() => setShowAdjustmentModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingAdjustment}>Annuler</button>
                 <button type="submit" disabled={isSubmittingAdjustment} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50">
                   {isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showRevaluationModal && (
+        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">Réévaluer Prix Moyen: {currentStock?.nom_produit}</h3>
+              <button onClick={() => setShowRevaluationModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingRevaluation}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleRevaluation} className="p-6 space-y-4">
+              {revaluationErrors.general && <p className="text-red-500 text-sm mt-2">{revaluationErrors.general}</p>}
+              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  Prix d'achat moyen actuel: <span className="font-bold">{currentStock?.prix_achat_moyen} Ar</span>
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nouveau Prix d'Achat Moyen (Ar)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={revaluationForm.nouveau_prix_achat_moyen}
+                  onChange={(e) => setRevaluationForm({ ...revaluationForm, nouveau_prix_achat_moyen: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {revaluationErrors.nouveau_prix_achat_moyen && <p className="text-red-500 text-xs mt-1">{revaluationErrors.nouveau_prix_achat_moyen}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
+                <textarea
+                  value={revaluationForm.commentaire}
+                  onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowRevaluationModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingRevaluation}>Annuler</button>
+                <button type="submit" disabled={isSubmittingRevaluation} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50">
+                  {isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}
                 </button>
               </div>
             </form>

@@ -508,6 +508,7 @@ class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
+    is_superuser = serializers.BooleanField(source='user.is_superuser', read_only=True) # Ajout de is_superuser
     role_nom = serializers.CharField(source='role.nom', read_only=True)
     permissions_effectives = serializers.SerializerMethodField()
     peut_travailler = serializers.ReadOnlyField(source='peut_travailler_maintenant')
@@ -515,7 +516,7 @@ class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfilUtilisateur
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
+            'id', 'username', 'email', 'first_name', 'last_name', 'is_superuser', # Ajout de is_superuser
             'role', 'role_nom', 'permissions_supplementaires', 'permissions_refusees',
             'telephone', 'poste', 'actif', 'heure_debut_travail', 'heure_fin_travail',
             'jours_travail', 'permissions_effectives', 'peut_travailler',
@@ -574,6 +575,13 @@ class ProfilUtilisateurCreateSerializer(serializers.ModelSerializer):
             'telephone', 'poste', 'heure_debut_travail', 'heure_fin_travail',
             'jours_travail'
         ]
+
+    @staticmethod
+    def validate_username(value):
+        # Vérifie si un utilisateur avec ce nom d'utilisateur existe déjà
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Un utilisateur avec ce nom d'utilisateur existe déjà.")
+        return value
 
     def create(self, validated_data):
         # Extraire les données utilisateur

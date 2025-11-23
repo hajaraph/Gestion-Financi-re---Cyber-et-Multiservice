@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { produitAPI, categorieProduitAPI, uniteMesureAPI } from '../services/api';
+import { useCrud } from '../hooks/useCrud';
 import ConfirmModal from './ConfirmModal';
-import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
-import { FaCheckCircle, FaTimesCircle, FaInfoCircle } from 'react-icons/fa'; // Import des icônes
+import NotificationIcon from './common/NotificationIcon';
 
 const emptyForm = {
   designation: '',
@@ -16,60 +16,54 @@ const emptyForm = {
 };
 
 const ProduitsPage = () => {
-  const [produits, setProduits] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [unites, setUnites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [toDelete, setToDelete] = useState(null);
+
+  const loadDependencies = useCallback(async () => {
+    const [categoriesResult, unitesResult] = await Promise.all([
+      categorieProduitAPI.getAll(),
+      uniteMesureAPI.getAll(),
+    ]);
+    return {
+      categories: categoriesResult.success ? categoriesResult.data : [],
+      unites: unitesResult.success ? unitesResult.data : [],
+    };
+  }, []);
+
+  const {
+    items: produits,
+    dependencies,
+    loading,
+    notification,
+    showModal,
+    isSubmitting,
+    errors,
+    editing,
+    form,
+    showDeleteModal,
+    toDelete,
+    load,
+    notify,
+    openCreate,
+    openEdit,
+    onSubmit,
+    requestDelete,
+    confirmDelete,
+    setForm,
+    setShowModal,
+    setShowDeleteModal,
+  } = useCrud(produitAPI, emptyForm, loadDependencies);
 
   useEffect(() => {
     load();
-  }, []);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [produitsResult, categoriesResult, unitesResult] = await Promise.all([
-        produitAPI.getAll(),
-        categorieProduitAPI.getAll(),
-        uniteMesureAPI.getAll(),
-      ]);
-      if (produitsResult.success) setProduits(produitsResult.data);
-      if (categoriesResult.success) setCategories(categoriesResult.data);
-      if (unitesResult.success) setUnites(unitesResult.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [load]);
 
   const filtered = produits.filter(p =>
     p.designation?.toLowerCase().includes(search.toLowerCase()) ||
     p.reference?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const notify = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setErrors({});
-    setShowModal(true);
-  };
-
-  const openEdit = (prod) => {
-    setEditing(prod);
-    setForm({
+  const handleOpenEdit = (prod) => {
+    const formValues = {
       designation: prod.designation || '',
       categorie: prod.categorie || '',
       unite_mesure: prod.unite_mesure || '',
@@ -78,63 +72,17 @@ const ProduitsPage = () => {
       actif: prod.actif,
       unite_achat: prod.unite_achat || '',
       quantite_par_unite_achat: prod.quantite_par_unite_achat || 1,
-    });
-    setErrors({});
-    setShowModal(true);
+    };
+    openEdit(prod, formValues);
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
-    try {
-      const payload = {
-        ...form,
-        prix_vente: form.prix_vente || 0,
-        unite_achat: form.unite_achat || null, // Envoyer null si vide
-       };
-      const result = editing
-        ? await produitAPI.update(editing.id, payload)
-        : await produitAPI.create(payload);
-
-      if (result.success) {
-        await load();
-        setShowModal(false);
-        notify(editing ? 'Produit modifié avec succès' : 'Produit créé avec succès');
-      } else {
-        const err = result.error;
-        if (err && typeof err === 'object') setErrors(err);
-        else setErrors({ general: err });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const requestDelete = (prod) => {
-    setToDelete(prod);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!toDelete) return;
-    try {
-      const result = await produitAPI.delete(toDelete.id);
-      if (result.success) {
-        await load();
-        notify('Produit supprimé');
-      } else {
-        if (result.statusCode === 409) {
-            const productName = toDelete.designation;
-            notify(`"${productName}" ne peut pas être supprimé car il est utilisé dans le stock ou des ventes.`, 'warning');
-        } else {
-            notify(result.error?.detail || 'Erreur lors de la suppression.', 'error');
-        }
-      }
-    } finally {
-      setShowDeleteModal(false);
-      setToDelete(null);
-    }
+  const handleSubmit = (e) => {
+    const payload = {
+      ...form,
+      prix_vente: form.prix_vente || 0,
+      unite_achat: form.unite_achat || null,
+    };
+    onSubmit(e, payload);
   };
 
   return (
@@ -216,7 +164,7 @@ const ProduitsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(p)} className="text-blue-600 hover:text-blue-900" title="Modifier le produit">
+                        <button onClick={() => handleOpenEdit(p)} className="text-blue-600 hover:text-blue-900" title="Modifier le produit">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
@@ -257,7 +205,7 @@ const ProduitsPage = () => {
               </button>
             </div>
 
-            <form onSubmit={onSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {errors.general && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
                   <span className="text-red-600 text-sm">{errors.general}</span>
@@ -289,7 +237,7 @@ const ProduitsPage = () => {
                     disabled={isSubmitting}
                   >
                     <option value="">Sélectionner...</option>
-                    {categories.map(cat => (
+                    {dependencies.categories?.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.nom}</option>
                     ))}
                   </select>
@@ -325,7 +273,7 @@ const ProduitsPage = () => {
                             disabled={isSubmitting}
                         >
                             <option value="">Sélectionner...</option>
-                            {unites.map(unite => (
+                            {dependencies.unites?.map(unite => (
                             <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
                             ))}
                         </select>
@@ -341,7 +289,7 @@ const ProduitsPage = () => {
                             disabled={isSubmitting}
                         >
                             <option value="">(Aucune)</option>
-                            {unites.map(unite => (
+                            {dependencies.unites?.map(unite => (
                             <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
                             ))}
                         </select>

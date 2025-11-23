@@ -180,6 +180,7 @@ export const servicePersonnaliseAPI = {
 // Services pour la gestion des stocks
 export const stockAPI = {
   getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/stocks/', { params })),
+  getHistory: async (id) => handleApiResponse(() => apiClient.get(`/api/stocks/${id}/historique/`)), // Ajouté
   update: async (id, data) => handleApiResponse(() => apiClient.patch(`/api/stocks/${id}/`, data)),
   recordEntry: async (data) => handleApiResponse(() => apiClient.post('/api/stocks/enregistrer_entree/', data)),
   adjustStock: async (id, payload) => handleApiResponse(() => apiClient.post(`/api/stocks/${id}/ajuster_stock/`, payload)),

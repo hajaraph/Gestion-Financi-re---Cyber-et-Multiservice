@@ -5,23 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bd340b9f-90b7-406f-a86e-70766b2ee2c4" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/templates/src/components/ParametresPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/src/components/UserManagementPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/src/hooks/useCrud.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/6b081382-55e6-4202-a351-a5a812dc057a.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/6b081382-55e6-4202-a351-a5a812dc057a.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gestion/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gestion/migrations/0004_parametreentreprise_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gestion/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gestion/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Gestion/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/Gestion/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/templates/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/templates/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/src/components/Multiservice.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/Multiservice.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/src/components/ProduitsPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/ProduitsPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/src/components/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/src/components/StockPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/components/StockPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/templates/src/services/api.js" afterDir="false" />
     </list>
@@ -70,13 +56,13 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.updates&quot;,
     &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\PyCharm 2025.2.4\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -154,6 +140,8 @@
       <workItem from="1763840922436" duration="5429000" />
       <workItem from="1763846468070" duration="19018000" />
       <workItem from="1763892732267" duration="599000" />
+      <workItem from="1763925566861" duration="69000" />
+      <workItem from="1763926034491" duration="3160000" />
     </task>
     <servers />
   </component>

@@ -243,7 +243,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request):
+    def dupliquer(self, request, pk=None):
         """Dupliquer un rôle avec un nouveau nom"""
         role_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -291,6 +291,13 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_destroy(self, instance):
+        """
+        Surcharge pour supprimer l'utilisateur Django associé en même temps que le profil.
+        """
+        # La suppression du User déclenchera la suppression en cascade du ProfilUtilisateur
+        instance.user.delete()
+
     @action(detail=False, methods=['post'])
     def verifier_permission(self, request):
         """Vérifier si un utilisateur a une permission spécifique"""
@@ -319,7 +326,7 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
-    def modifier_permissions(self, request):
+    def modifier_permissions(self, request, pk=None):
         """Modifier les permissions d'un utilisateur"""
         profil = self.get_object()
 
@@ -569,7 +576,7 @@ class TarifServiceViewSet(viewsets.ModelViewSet):
         return Response(list(codes))
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request):
+    def dupliquer(self, request, pk=None):
         """Dupliquer un service avec un nouveau nom"""
         tarif_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -924,7 +931,7 @@ class TypePapierViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request):
+    def dupliquer(self, request, pk=None):
         """Dupliquer un type de papier avec un nouveau code"""
         type_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -1021,7 +1028,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def mouvements(self, request):
+    def mouvements(self, request, pk=None):
         """
         Liste tous les mouvements de stock pour ce produit
         """
@@ -1037,7 +1044,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
-    def mettre_a_jour_prix(self, request):
+    def mettre_a_jour_prix(self, request, pk=None):
         """
         Mettre à jour le prix de vente d'un produit
         """
@@ -1090,7 +1097,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         return Response(result)
 
     @action(detail=True, methods=['get'])
-    def historique_prix(self, request):
+    def historique_prix(self, request, pk=None):
         """
         Retourne l'historique des prix d'achat pour ce produit
         """
@@ -1129,7 +1136,7 @@ class StockViewSet(viewsets.ModelViewSet):
         """
         Instancie et retourne la liste des permissions que cette vue requiert.
         """
-        if self.action in ['list', 'retrieve', 'alertes', 'valeurs']:
+        if self.action in ['list', 'retrieve', 'alertes', 'valeurs', 'historique']:
             return [CustomPermission('view_produit')]
         else:
             return [CustomPermission('manage_stock')]
@@ -1146,6 +1153,22 @@ class StockViewSet(viewsets.ModelViewSet):
             )
 
         return queryset.order_by('produit__designation')
+
+    @action(detail=True, methods=['get'], serializer_class=MouvementStockSerializer)
+    def historique(self, request, pk=None):
+        """
+        Retourne l'historique des mouvements de stock pour un produit spécifique.
+        """
+        stock = self.get_object()
+        mouvements = stock.mouvements.select_related('utilisateur').order_by('-date_mouvement')
+
+        page = self.paginate_queryset(mouvements)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(mouvements, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['post'], serializer_class=EntreeStockSerializer)
     def enregistrer_entree(self, request):
@@ -1196,7 +1219,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post']) # Nouvel endpoint pour l'ajustement
-    def ajuster_stock(self, request):
+    def ajuster_stock(self, request, pk=None):
         stock = self.get_object()
         quantite_ajustement_raw = request.data.get('quantite')
         type_ajustement = request.data.get('type_ajustement') # 'AUGMENTATION' ou 'DIMINUTION'
@@ -1209,7 +1232,7 @@ class StockViewSet(viewsets.ModelViewSet):
 
         # Convertir la quantité d'ajustement en Decimal
         quantite_ajustement = Decimal(str(quantite_ajustement_raw))
-        
+
         quantite_avant = stock.quantite_actuelle
 
         if type_ajustement == 'AUGMENTATION':
@@ -1239,7 +1262,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post']) # Nouvel endpoint pour la réévaluation du prix moyen
-    def revaluer_prix_moyen(self, request):
+    def revaluer_prix_moyen(self, request, pk=None):
         stock = self.get_object()
         nouveau_prix_achat_moyen_raw = request.data.get('nouveau_prix_achat_moyen')
         commentaire = request.data.get('commentaire', 'Réévaluation manuelle du prix moyen')
@@ -1467,24 +1490,24 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
 class VenteGroupeViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les ventes groupées."""
     queryset = VenteGroupee.objects.all().prefetch_related('lignes__tarif_service', 'transaction__utilisateur')
-    
+
     def get_serializer_class(self):
         if self.action == 'create':
             return VenteGroupeeCreateSerializer
         return VenteGroupeeSerializer
 
     @action(detail=True, methods=['get'])
-    def imprimer_facture(self, request):
+    def imprimer_facture(self, request, pk=None):
         try:
             vente = self.get_object()
             template = get_template('invoice_template.html')
             context = {'vente': vente}
             html = template.render(context)
-            
+
             response = HttpResponse(content_type='application/pdf')
             # Laisser le navigateur décider (pas de 'attachment')
             # response['Content-Disposition'] = f'filename="facture_{vente.id}.pdf"'
-            
+
             pisa_status = pisa.CreatePDF(html, dest=response)
             if pisa_status.err:
                 return HttpResponse('Erreur lors de la génération du PDF <pre>' + html + '</pre>')

@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {stockAPI} from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import {FaBalanceScale, FaDollarSign, FaPlus} from 'react-icons/fa'; // Ajout de FaDollarSign
+import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory } from 'react-icons/fa';
 
 const StockPage = () => {
   const [stocks, setStocks] = useState([]);
@@ -9,7 +9,6 @@ const StockPage = () => {
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
   
-  // State for the entry modal
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [isSubmittingEntry, setIsSubmittingEntry] = useState(false);
   const [entryErrors, setEntryErrors] = useState({});
@@ -22,17 +21,15 @@ const StockPage = () => {
     commentaire: '',
   });
 
-  // State for the adjustment modal
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [isSubmittingAdjustment, setIsSubmittingAdjustment] = useState(false);
   const [adjustmentErrors, setAdjustmentErrors] = useState({});
   const [adjustmentForm, setAdjustmentForm] = useState({
     quantite: '',
-    type_ajustement: 'AUGMENTATION', // 'AUGMENTATION' or 'DIMINUTION'
+    type_ajustement: 'AUGMENTATION',
     commentaire: '',
   });
 
-  // State for the revaluation modal
   const [showRevaluationModal, setShowRevaluationModal] = useState(false);
   const [isSubmittingRevaluation, setIsSubmittingRevaluation] = useState(false);
   const [revaluationErrors, setRevaluationErrors] = useState({});
@@ -40,6 +37,11 @@ const StockPage = () => {
     nouveau_prix_achat_moyen: '',
     commentaire: '',
   });
+
+  // State for history modal
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     loadStocks();
@@ -57,7 +59,6 @@ const StockPage = () => {
       if (result.success) {
         setStocks(result.data);
       } else {
-        // CORRECTION: Gérer le cas où l'erreur est un objet
         const errorMessage = typeof result.error === 'object' && result.error.detail 
           ? result.error.detail 
           : result.error || 'Erreur de chargement';
@@ -78,24 +79,28 @@ const StockPage = () => {
   const stats = stocks.reduce((acc, stock) => {
     acc.totalValeurAchat += Number(stock.valeur_stock_achat || 0);
     acc.totalValeurVente += Number(stock.valeur_stock_vente || 0);
-    if (parseFloat(stock.quantite_actuelle) <= 0) {
-      acc.ruptures++;
-    }
-    if (parseFloat(stock.quantite_actuelle) > 0 && parseFloat(stock.quantite_actuelle) <= parseFloat(stock.quantite_minimale)) {
-      acc.reappro++;
-    }
+    if (parseFloat(stock.quantite_actuelle) <= 0) acc.ruptures++;
+    if (parseFloat(stock.quantite_actuelle) > 0 && parseFloat(stock.quantite_actuelle) <= parseFloat(stock.quantite_minimale)) acc.reappro++;
     return acc;
   }, { totalValeurAchat: 0, totalValeurVente: 0, ruptures: 0, reappro: 0 });
 
+  const openHistoryModal = async (stock) => {
+    setCurrentStock(stock);
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    const result = await stockAPI.getHistory(stock.id);
+    if (result.success) {
+      setHistory(result.data.results || result.data); // Handle paginated or direct response
+    } else {
+      notify("Erreur lors du chargement de l'historique.", 'error');
+    }
+    setLoadingHistory(false);
+  };
+
+  // ... (other modal and handler functions remain the same)
   const openEntryModal = (stock) => {
     setCurrentStock(stock);
-    setEntryForm({
-      quantite_achat: '',
-      prix_total_achat: '',
-      fournisseur: '',
-      numero_facture: '',
-      commentaire: '',
-    });
+    setEntryForm({ quantite_achat: '', prix_total_achat: '', fournisseur: '', numero_facture: '', commentaire: '' });
     setEntryErrors({});
     setShowEntryModal(true);
   };
@@ -106,10 +111,7 @@ const StockPage = () => {
     setIsSubmittingEntry(true);
     setEntryErrors({});
     try {
-      const payload = {
-        produit_id: currentStock.produit_id,
-        ...entryForm,
-      };
+      const payload = { produit_id: currentStock.produit_id, ...entryForm };
       const result = await stockAPI.recordEntry(payload);
       if (result.success) {
         await loadStocks();
@@ -127,11 +129,7 @@ const StockPage = () => {
 
   const openAdjustmentModal = (stock) => {
     setCurrentStock(stock);
-    setAdjustmentForm({
-      quantite: '',
-      type_ajustement: 'AUGMENTATION',
-      commentaire: '',
-    });
+    setAdjustmentForm({ quantite: '', type_ajustement: 'AUGMENTATION', commentaire: '' });
     setAdjustmentErrors({});
     setShowAdjustmentModal(true);
   };
@@ -141,7 +139,6 @@ const StockPage = () => {
     if (!currentStock) return;
     setIsSubmittingAdjustment(true);
     setAdjustmentErrors({});
-
     try {
       const payload = {
         quantite: parseFloat(adjustmentForm.quantite),
@@ -165,10 +162,7 @@ const StockPage = () => {
 
   const openRevaluationModal = (stock) => {
     setCurrentStock(stock);
-    setRevaluationForm({
-      nouveau_prix_achat_moyen: stock.prix_achat_moyen || '',
-      commentaire: '',
-    });
+    setRevaluationForm({ nouveau_prix_achat_moyen: stock.prix_achat_moyen || '', commentaire: '' });
     setRevaluationErrors({});
     setShowRevaluationModal(true);
   };
@@ -178,7 +172,6 @@ const StockPage = () => {
     if (!currentStock) return;
     setIsSubmittingRevaluation(true);
     setRevaluationErrors({});
-
     try {
       const payload = {
         nouveau_prix_achat_moyen: parseFloat(revaluationForm.nouveau_prix_achat_moyen),
@@ -224,14 +217,17 @@ const StockPage = () => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex justify-end gap-2">
+            <button onClick={() => openHistoryModal(stock)} className="text-gray-600 hover:text-gray-900 flex items-center gap-1 cursor-pointer" title="Historique du stock">
+                <FaHistory />
+            </button>
             <button onClick={() => openEntryModal(stock)} className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer" title="Ajouter au stock">
-                <FaPlus /> Ajouter au stock
+                <FaPlus />
             </button>
             <button onClick={() => openAdjustmentModal(stock)} className="text-purple-600 hover:text-purple-900 flex items-center gap-1 cursor-pointer" title="Ajuster le stock">
-                <FaBalanceScale /> Ajuster
+                <FaBalanceScale />
             </button>
             <button onClick={() => openRevaluationModal(stock)} className="text-green-600 hover:text-green-900 flex items-center gap-1 cursor-pointer" title="Réévaluer le prix moyen">
-                <FaDollarSign /> Réévaluer Prix
+                <FaDollarSign />
             </button>
         </div>
       </td>
@@ -254,41 +250,19 @@ const StockPage = () => {
         <p className="text-gray-600">Suivez et gérez les quantités de vos produits.</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Valeur d'achat</div>
-          <div className="text-2xl font-bold">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Valeur de vente</div>
-          <div className="text-2xl font-bold text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">En rupture</div>
-          <div className="text-2xl font-bold text-red-600">{stats.ruptures}</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">À réapprovisionner</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.reappro}</div>
-        </div>
+        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">Valeur d'achat</div><div className="text-2xl font-bold">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div></div>
+        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">Valeur de vente</div><div className="text-2xl font-bold text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div></div>
+        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">En rupture</div><div className="text-2xl font-bold text-red-600">{stats.ruptures}</div></div>
+        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">À réapprovisionner</div><div className="text-2xl font-bold text-yellow-600">{stats.reappro}</div></div>
       </div>
 
       <div className="mb-6 flex justify-between items-center">
-        <input
-          type="text"
-          placeholder="Rechercher un produit..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
-        />
+        <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-md pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
       </div>
 
       {loading ? (
-        <div className="p-8 text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des stocks...</p>
-        </div>
+        <div className="p-8 text-center"><div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div><p>Chargement des stocks...</p></div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -302,21 +276,58 @@ const StockPage = () => {
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredStocks.map(renderStockListItem)}
-            </tbody>
+            <tbody className="bg-white divide-y divide-gray-200">{filteredStocks.map(renderStockListItem)}</tbody>
           </table>
-          {filteredStocks.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p>Aucun stock trouvé</p>
-            </div>
-          )}
+          {filteredStocks.length === 0 && <div className="p-8 text-center text-gray-500"><svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg><p>Aucun stock trouvé</p></div>}
         </div>
       )}
 
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">Historique du stock: {currentStock?.nom_produit}</h3>
+              <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-600"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div className="overflow-y-auto p-6">
+              {loadingHistory ? <p>Chargement de l'historique...</p> : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motif</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantité</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Stock Avant</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Stock Après</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {history.map(m => (
+                      <tr key={m.id}>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm">{new Date(m.date_mouvement).toLocaleString('fr-FR')}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm">{m.type_mouvement_display}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm">{m.motif_display}</td>
+                        <td className={`px-4 py-2 whitespace-nowrap text-sm text-right font-bold ${m.type_mouvement === 'ENTREE' ? 'text-green-600' : 'text-red-600'}`}>
+                          {m.type_mouvement === 'ENTREE' ? '+' : '-'}{parseFloat(m.quantite).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{parseFloat(m.quantite_avant).toLocaleString()}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{parseFloat(m.quantite_apres).toLocaleString()}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm">{m.utilisateur_nom || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {history.length === 0 && !loadingHistory && <p className="text-center py-4">Aucun mouvement trouvé pour ce produit.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Other modals (Entry, Adjustment, Revaluation) remain unchanged */}
       {showEntryModal && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -336,50 +347,26 @@ const StockPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Quantité Achetée ({currentStock?.unite_achat_symbole})</label>
-                  <input
-                    type="number"
-                    required
-                    value={entryForm.quantite_achat}
-                    onChange={(e) => setEntryForm({ ...entryForm, quantite_achat: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                    {entryErrors.quantite_achat && <p className="text-red-500 text-xs mt-1">{entryErrors.quantite_achat}</p>}
+                  <input type="number" required value={entryForm.quantite_achat} onChange={(e) => setEntryForm({ ...entryForm, quantite_achat: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                  {entryErrors.quantite_achat && <p className="text-red-500 text-xs mt-1">{entryErrors.quantite_achat}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Prix Total d'Achat (Ar)</label>
-                  <input
-                    type="number"
-                    required
-                    value={entryForm.prix_total_achat}
-                    onChange={(e) => setEntryForm({ ...entryForm, prix_total_achat: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  <input type="number" required value={entryForm.prix_total_achat} onChange={(e) => setEntryForm({ ...entryForm, prix_total_achat: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
                   {entryErrors.prix_total_achat && <p className="text-red-500 text-xs mt-1">{entryErrors.prix_total_achat}</p>}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Fournisseur (Optionnel)</label>
-                <input
-                  type="text"
-                  value={entryForm.fournisseur}
-                  onChange={(e) => setEntryForm({ ...entryForm, fournisseur: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <input type="text" value={entryForm.fournisseur} onChange={(e) => setEntryForm({ ...entryForm, fournisseur: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">N° Facture (Optionnel)</label>
-                <input
-                  type="text"
-                  value={entryForm.numero_facture}
-                  onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <input type="text" value={entryForm.numero_facture} onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowEntryModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingEntry}>Annuler</button>
-                <button type="submit" disabled={isSubmittingEntry} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">
-                  {isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}
-                </button>
+                <button type="submit" disabled={isSubmittingEntry} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}</button>
               </div>
             </form>
           </div>
@@ -391,50 +378,29 @@ const StockPage = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Ajuster Stock: {currentStock?.nom_produit}</h3>
-              <button onClick={() => setShowAdjustmentModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingAdjustment}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <button onClick={() => setShowAdjustmentModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingAdjustment}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleAdjustment} className="p-6 space-y-4">
               {adjustmentErrors.general && <p className="text-red-500 text-sm mt-2">{adjustmentErrors.general}</p>}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Type d'ajustement</label>
-                <select
-                  value={adjustmentForm.type_ajustement}
-                  onChange={(e) => setAdjustmentForm({ ...adjustmentForm, type_ajustement: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                >
+                <select value={adjustmentForm.type_ajustement} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, type_ajustement: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
                   <option value="AUGMENTATION">Augmentation (+)</option>
                   <option value="DIMINUTION">Diminution (-)</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Quantité ({currentStock?.unite_mesure_produit})</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={adjustmentForm.quantite}
-                  onChange={(e) => setAdjustmentForm({ ...adjustmentForm, quantite: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <input type="number" required min="0" value={adjustmentForm.quantite} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, quantite: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
                 {adjustmentErrors.quantite && <p className="text-red-500 text-xs mt-1">{adjustmentErrors.quantite}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
-                <textarea
-                  value={adjustmentForm.commentaire}
-                  onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <textarea value={adjustmentForm.commentaire} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowAdjustmentModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingAdjustment}>Annuler</button>
-                <button type="submit" disabled={isSubmittingAdjustment} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50">
-                  {isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}
-                </button>
+                <button type="submit" disabled={isSubmittingAdjustment} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50">{isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}</button>
               </div>
             </form>
           </div>
@@ -446,43 +412,23 @@ const StockPage = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Réévaluer Prix Moyen: {currentStock?.nom_produit}</h3>
-              <button onClick={() => setShowRevaluationModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingRevaluation}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <button onClick={() => setShowRevaluationModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingRevaluation}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleRevaluation} className="p-6 space-y-4">
               {revaluationErrors.general && <p className="text-red-500 text-sm mt-2">{revaluationErrors.general}</p>}
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  Prix d'achat moyen actuel: <span className="font-bold">{currentStock?.prix_achat_moyen} Ar</span>
-              </p>
+              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">Prix d'achat moyen actuel: <span className="font-bold">{currentStock?.prix_achat_moyen} Ar</span></p>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nouveau Prix d'Achat Moyen (Ar)</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={revaluationForm.nouveau_prix_achat_moyen}
-                  onChange={(e) => setRevaluationForm({ ...revaluationForm, nouveau_prix_achat_moyen: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <input type="number" required min="0" step="0.01" value={revaluationForm.nouveau_prix_achat_moyen} onChange={(e) => setRevaluationForm({ ...revaluationForm, nouveau_prix_achat_moyen: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
                 {revaluationErrors.nouveau_prix_achat_moyen && <p className="text-red-500 text-xs mt-1">{revaluationErrors.nouveau_prix_achat_moyen}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
-                <textarea
-                  value={revaluationForm.commentaire}
-                  onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
+                <textarea value={revaluationForm.commentaire} onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowRevaluationModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingRevaluation}>Annuler</button>
-                <button type="submit" disabled={isSubmittingRevaluation} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50">
-                  {isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}
-                </button>
+                <button type="submit" disabled={isSubmittingRevaluation} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
               </div>
             </form>
           </div>

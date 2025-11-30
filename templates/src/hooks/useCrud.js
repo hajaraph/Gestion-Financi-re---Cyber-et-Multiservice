@@ -32,6 +32,7 @@ export const useCrud = (api, emptyForm, loadDependencies) => {
         const deps = await loadDependencies();
         setDependencies(deps);
       }
+        // eslint-disable-next-line no-unused-vars
     } catch (error) {
       notify('Une erreur critique est survenue.', 'error');
     } finally {
@@ -76,6 +77,7 @@ export const useCrud = (api, emptyForm, loadDependencies) => {
         }
         notify('Veuillez corriger les erreurs.', 'error');
       }
+        // eslint-disable-next-line no-unused-vars
     } catch (error) {
       notify('Une erreur inattendue est survenue.', 'error');
     } finally {
@@ -102,6 +104,7 @@ export const useCrud = (api, emptyForm, loadDependencies) => {
           notify(result.error?.detail || 'Erreur lors de la suppression.', 'error');
         }
       }
+        // eslint-disable-next-line no-unused-vars
     } catch (error) {
       notify('Une erreur inattendue est survenue lors de la suppression.', 'error');
     } finally {

@@ -6,7 +6,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Sum, Count, Q, F, ProtectedError # Import ProtectedError
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import QuerySet
 from decimal import Decimal # Import Decimal
 from .models import (
@@ -38,6 +38,121 @@ from xhtml2pdf import pisa
 # Permissions personnalisées pour l'API
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
 import json
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_stats(request):
+    """
+    Vue pour récupérer toutes les statistiques nécessaires pour le tableau de bord.
+    """
+    period = request.query_params.get('period', 'today')
+    today = timezone.now().date()
+    
+    if period == 'week':
+        start_date = today - timedelta(days=today.weekday())
+    elif period == 'month':
+        start_date = today.replace(day=1)
+    else:
+        start_date = today
+
+    end_date = today
+
+    date_range = Q(date_transaction__date__gte=start_date, date_transaction__date__lte=end_date)
+
+    # 1. Statistiques principales
+    recettes = Transaction.objects.filter(
+        type_transaction='RECETTE',
+        **{'date_transaction__date__gte': start_date, 'date_transaction__date__lte': end_date}
+    ).aggregate(total=Sum('montant'))['total'] or 0
+
+    depenses = Transaction.objects.filter(
+        type_transaction='DEPENSE',
+        **{'date_transaction__date__gte': start_date, 'date_transaction__date__lte': end_date}
+    ).aggregate(total=Sum('montant'))['total'] or 0
+
+    # Sessions Internet
+    sessions_internet = ServicePersonnalise.objects.filter(
+        transaction__date_transaction__date__gte=start_date,
+        transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='INTERNET'
+    ).count()
+
+    # Documents imprimés
+    impressions = ServicePersonnalise.objects.filter(
+        transaction__date_transaction__date__gte=start_date,
+        transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='IMPRESSION'
+    ).aggregate(total=Sum('quantite'))['total'] or 0
+    
+    photocopies = ServicePersonnalise.objects.filter(
+        transaction__date_transaction__date__gte=start_date,
+        transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='MULTISERVICE',
+        tarif_service__nom_service__icontains='photocopie'
+    ).aggregate(total=Sum('quantite'))['total'] or 0
+
+    documents_imprimes = impressions + photocopies
+
+    # 2. Services populaires
+    services_populaires = ServicePersonnalise.objects.filter(
+        transaction__date_transaction__date__gte=start_date,
+        transaction__date_transaction__date__lte=end_date
+    ).values(
+        'tarif_service__nom_service',
+        'tarif_service__categorie'
+    ).annotate(
+        total_montant=Sum('transaction__montant'),
+        nombre_transactions=Count('id')
+    ).order_by('-total_montant')[:5]
+
+    # 3. Activité récente
+    activite_recente = Transaction.objects.filter(
+        date_transaction__date__gte=start_date,
+        date_transaction__date__lte=end_date
+    ).order_by('-date_transaction')[:5]
+
+    # 4. Résumé financier
+    benefice_net = recettes - depenses
+
+    response_data = {
+        'statistiques_principales': {
+            'recettes_jour': {
+                'valeur': recettes,
+                'variation': 0 # La variation n'est calculée que pour la vue "today"
+            },
+            'sessions_internet': {
+                'valeur': sessions_internet
+            },
+            'documents_imprimes': {
+                'valeur': documents_imprimes
+            },
+            'depenses_jour': {
+                'valeur': depenses
+            }
+        },
+        'services_populaires': list(services_populaires),
+        'activite_recente': TransactionSerializer(activite_recente, many=True).data,
+        'resume_financier': {
+            'total_recettes': recettes,
+            'total_depenses': depenses,
+            'benefice_net': benefice_net
+        }
+    }
+    
+    if period == 'today':
+        yesterday = today - timedelta(days=1)
+        recettes_hier = Transaction.objects.filter(
+            type_transaction='RECETTE',
+            date_transaction__date=yesterday
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        if recettes_hier > 0:
+            response_data['statistiques_principales']['recettes_jour']['variation'] = ((recettes - recettes_hier) / recettes_hier) * 100
+        else:
+            response_data['statistiques_principales']['recettes_jour']['variation'] = 100 if recettes > 0 else 0
+
+
+    return Response(response_data)
 
 
 def filter_by_date_range(

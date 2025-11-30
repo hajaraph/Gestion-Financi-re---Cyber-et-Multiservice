@@ -221,6 +221,10 @@ export const parametresEntrepriseAPI = {
   // partialUpdate: async (data) => handleApiResponse(() => apiClient.patch('/api/parametres-entreprise/', data)),
 };
 
+export const dashboardAPI = {
+    getStats: async () => handleApiResponse(() => apiClient.get('/api/dashboard-stats/')),
+};
+
 // Export de l'instance Axios pour des cas spéciaux
 export { apiClient };
 
@@ -243,5 +247,6 @@ export default {
   venteProduit: venteProduitAPI,
   venteGroupee: venteGroupeeAPI,
   parametresEntreprise: parametresEntrepriseAPI,
+  dashboard: dashboardAPI,
   client: apiClient,
 };

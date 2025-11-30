@@ -33,4 +33,7 @@ urlpatterns = [
     path('auth/logout/', views.logout_view, name='logout'),
     path('auth/verify-token/', views.verify_token, name='verify_token'),
     path('auth/register/', views.register_view, name='register'),
+    
+    # URL pour les statistiques du tableau de bord
+    path('api/dashboard-stats/', views.dashboard_stats, name='dashboard-stats'),
 ]

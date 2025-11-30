@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { produitAPI, venteProduitAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
+import useDocumentTitle from '../hooks/useDocumentTitle';
+import { useStockAlert } from '../context/StockAlertContext';
+import { FaTimes } from 'react-icons/fa'; // Import de l'icône de fermeture
 
 const VenteProduitPage = () => {
+  useDocumentTitle('Vente de Produits');
   const [produits, setProduits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,15 +14,9 @@ const VenteProduitPage = () => {
   const [quantite, setQuantite] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [recentSales, setRecentSales] = useState(() => {
-    const savedSales = localStorage.getItem('recentSales');
-    return savedSales ? JSON.parse(savedSales) : [];
-  });
+  const [recentSales, setRecentSales] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('recentSales', JSON.stringify(recentSales));
-  }, [recentSales]);
+  const { refreshAlerts } = useStockAlert();
 
   const fetchProduits = async () => {
     const result = await produitAPI.getAll({ en_stock: 'true', actif: 'true' });
@@ -74,7 +72,7 @@ const VenteProduitPage = () => {
       if (result.success) {
         notify('Vente enregistrée avec succès!');
         setShowConfirmModal(false);
-        await Promise.all([fetchProduits(), fetchRecentSales()]);
+        await Promise.all([fetchProduits(), fetchRecentSales(), refreshAlerts()]);
       } else {
         const errorMessage = result.error?.quantite || result.error?.detail || result.error?.non_field_errors || 'Erreur lors de la vente.';
         notify(errorMessage, 'error');
@@ -89,14 +87,24 @@ const VenteProduitPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const EmptyState = ({ message }) => (
+    <div className="text-center text-gray-500 py-8">
+      <p>{message}</p>
+    </div>
+  );
+
   return (
-    <div className="p-6">
+    <div className="p-6 w-full"> {/* Animation retirée ici, car PageWrapper s'en charge */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
-        } text-white`}>
-          <NotificationIcon type={notification.type} />
-          <span>{notification.message}</span>
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
+          ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
+          <div className="flex items-center gap-2">
+            <NotificationIcon type={notification.type} className="w-5 h-5" />
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-white hover:text-gray-100">
+            <FaTimes />
+          </button>
         </div>
       )}
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Point de Vente Directe</h1>
@@ -113,21 +121,27 @@ const VenteProduitPage = () => {
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg"
           />
           <div className="max-h-[60vh] overflow-y-auto">
-            {loading ? <p>Chargement...</p> : filteredProduits.map(p => (
-              <div
-                key={p.id}
-                onClick={() => openConfirmModal(p)}
-                className="p-3 rounded-lg cursor-pointer mb-2 bg-gray-100 hover:bg-gray-200"
-              >
-                <p className="font-semibold">{p.designation}</p>
-                <p className="text-sm text-gray-600">
-                  {p.prix_vente.toLocaleString('fr-FR')} Ar - 
-                  <span className={p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'font-bold text-red-500' : ''}>
-                     Stock: {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
-                  </span>
-                </p>
-              </div>
-            ))}
+            {loading ? (
+              <p>Chargement...</p>
+            ) : filteredProduits.length > 0 ? (
+              filteredProduits.map(p => (
+                <div
+                  key={p.id}
+                  onClick={() => openConfirmModal(p)}
+                  className="p-3 rounded-lg cursor-pointer mb-2 bg-gray-100 hover:bg-gray-200"
+                >
+                  <p className="font-semibold">{p.designation}</p>
+                  <p className="text-sm text-gray-600">
+                    {p.prix_vente.toLocaleString('fr-FR')} Ar - 
+                    <span className={p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'font-bold text-red-500' : ''}>
+                       Stock: {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
+                    </span>
+                  </p>
+                </div>
+              ))
+            ) : (
+              <EmptyState message="Aucun produit en stock ou correspondant à votre recherche." />
+            )}
           </div>
         </div>
 
@@ -135,7 +149,9 @@ const VenteProduitPage = () => {
         <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Ventes du Jour</h2>
             <div className="max-h-[70vh] overflow-y-auto">
-                {recentSales.length > 0 ? (
+                {loading ? (
+                  <p>Chargement...</p>
+                ) : recentSales.length > 0 ? (
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -163,7 +179,7 @@ const VenteProduitPage = () => {
                         </tbody>
                     </table>
                 ) : (
-                    <p className="text-center text-gray-500 py-8">Aucune vente enregistrée pour aujourd'hui.</p>
+                    <EmptyState message="Aucune vente enregistrée pour aujourd'hui." />
                 )}
             </div>
         </div>
@@ -171,8 +187,8 @@ const VenteProduitPage = () => {
 
       {/* Modal de confirmation de vente */}
       {showConfirmModal && selectedProduit && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-300"> {/* Animation pour l'overlay */}
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out"> {/* Animation pour la modale */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Confirmer la Vente</h3>
               <button onClick={() => setShowConfirmModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>

@@ -1,24 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
+import { useStockAlert } from '../context/StockAlertContext';
+import { FaBell, FaExclamationTriangle, FaTimesCircle, FaCheckCircle } from 'react-icons/fa'; // Ajout d'icônes
+import Portal from './common/Portal'; // Importer le composant Portal
 
 const Sidebar = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showStockAlerts, setShowStockAlerts] = useState(false);
+  const [alertsPosition, setAlertsPosition] = useState({ top: 0, left: 0 });
   const navigate = useNavigate();
   const location = useLocation();
+  const { alerts, totalAlerts } = useStockAlert();
+  const alertsDropdownRef = useRef(null); // Renommé pour plus de clarté
+  const bellIconRef = useRef(null); // Référence pour l'icône de cloche
 
-  // Fonction pour vérifier si l'utilisateur a une permission spécifique
-  const hasPermission = (permissionCode) => {
-    // Si l'utilisateur est superuser, il a toutes les permissions
-    if (user?.is_superuser) {
-      return true;
+  // Calculer la position du dropdown
+  const calculateAlertsPosition = () => {
+    if (bellIconRef.current) {
+      const rect = bellIconRef.current.getBoundingClientRect();
+      // Positionner le bord gauche du dropdown avec le bord gauche de l'icône de cloche
+      setAlertsPosition({
+        top: rect.bottom + window.scrollY + 10, // 10px en dessous de l'icône
+        left: rect.left + window.scrollX, // Aligner le bord gauche du dropdown avec le bord gauche de l'icône
+      });
     }
-    // Vérifier si l'objet user et ses permissions existent
+  };
+
+  // Recalculer la position si la sidebar est ouverte/fermée ou si la fenêtre est redimensionnée
+  useEffect(() => {
+    if (showStockAlerts) {
+      calculateAlertsPosition();
+    }
+    const handleResize = () => {
+      if (showStockAlerts) calculateAlertsPosition();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isOpen, showStockAlerts]);
+
+  // Fermer le dropdown si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (alertsDropdownRef.current && !alertsDropdownRef.current.contains(event.target) && bellIconRef.current && !bellIconRef.current.contains(event.target)) {
+        setShowStockAlerts(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleBellClick = () => {
+    if (!showStockAlerts) {
+      calculateAlertsPosition();
+    }
+    setShowStockAlerts(prev => !prev);
+  };
+
+  const hasPermission = (permissionCode) => {
+    if (user?.is_superuser) return true;
     return user?.permissions?.includes(permissionCode);
   };
 
-  // Menu basé sur vos modèles Django de gestion de cyber café
   const menuItems = [
     {
       id: 'dashboard',
@@ -31,7 +77,7 @@ const Sidebar = ({ user, onLogout }) => {
       ),
       path: '/dashboard',
       description: 'Vue d\'ensemble des activités',
-      permission: null // Aucune permission spécifique requise pour le tableau de bord
+      permission: null
     },
     {
       id: 'vente-produits',
@@ -116,7 +162,7 @@ const Sidebar = ({ user, onLogout }) => {
       ),
       path: '/produits',
       description: 'Enregistrer et gérer les produits',
-      permission: 'view_produit' // CORRECTION: Changé de 'manage_produits' à 'view_produit'
+      permission: 'view_produit'
     },
     {
       id: 'parametres',
@@ -133,111 +179,135 @@ const Sidebar = ({ user, onLogout }) => {
   ];
 
   const getInitials = (firstName, lastName, username) => {
-    if (firstName && lastName) {
-      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    }
+    if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     return username ? username.charAt(0).toUpperCase() : 'U';
   };
 
   const getDisplayName = () => {
-    if (user?.first_name && user?.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    }
+    if (user?.first_name && user?.last_name) return `${user.first_name} ${user.last_name}`;
     return user?.username || 'Utilisateur';
   };
 
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true);
-  };
-
+  const handleLogoutClick = () => setShowLogoutModal(true);
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
     onLogout();
   };
-
-  const handleCancelLogout = () => {
-    setShowLogoutModal(false);
-  };
-
-  const handleMenuClick = (path) => {
-    navigate(path);
-  };
-
-  // Déterminer le menu actif basé sur l'URL actuelle
-  const getActiveMenu = () => {
-    const currentPath = location.pathname;
-    const activeItem = menuItems.find(item => item.path === currentPath);
-    return activeItem ? activeItem.id : 'dashboard';
-  };
+  const handleCancelLogout = () => setShowLogoutModal(false);
+  const handleMenuClick = (path) => navigate(path);
+  const getActiveMenu = () => menuItems.find(item => item.path === location.pathname)?.id || 'dashboard';
 
   return (
-    <div className={`z-40 h-screen transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'} bg-gray-900 text-white flex flex-col`}>
-      {/* Header avec bouton toggle */}
+    <div className={`z-40 h-screen transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'} bg-gray-900 text-white flex flex-col`}>
       <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        {isOpen && (
-          <h2 className="text-xl font-bold text-blue-400">Cyber Café</h2>
-        )}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-          title={isOpen ? 'Réduire le menu' : 'Agrandir le menu'}
-        >
-          {isOpen ? '←' : '→'}
-        </button>
+        {isOpen && <h2 className="text-xl font-bold text-blue-400">Cyber Café</h2>}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button ref={bellIconRef} onClick={handleBellClick} className="p-2 rounded-lg hover:bg-gray-800 relative">
+              <FaBell className="w-5 h-5" />
+              {totalAlerts > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">{totalAlerts}</span>
+              )}
+            </button>
+            {showStockAlerts && (
+              <Portal>
+                <div
+                  ref={alertsDropdownRef}
+                  style={{ top: `${alertsPosition.top}px`, left: `${alertsPosition.left}px` }}
+                  className="absolute w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-200 dark:border-gray-700 animate-fade-in-down"
+                >
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                      <FaBell className="mr-2 text-blue-500" /> Alertes de Stock
+                    </h3>
+                    <button onClick={() => setShowStockAlerts(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto py-2">
+                    {totalAlerts === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center">
+                        <FaCheckCircle className="text-green-500 w-6 h-6 mb-2" />
+                        <span>Aucune alerte de stock. Tout est en ordre !</span>
+                      </div>
+                    ) : (
+                      <>
+                        {alerts.ruptures.length > 0 && (
+                          <div className="mb-2">
+                            <div className="flex items-center px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-700">
+                              <FaTimesCircle className="mr-2" /> Ruptures de Stock ({alerts.ruptures.length})
+                            </div>
+                            {alerts.ruptures.map(item => (
+                              <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <span>{item.nom_produit}</span>
+                                <span className="font-bold text-red-500">0 {item.unite_mesure_produit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {alerts.seuils_bas.length > 0 && (
+                          <div>
+                            <div className="flex items-center px-4 py-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-gray-700">
+                              <FaExclamationTriangle className="mr-2" /> Seuils Bas Atteints ({alerts.seuils_bas.length})
+                            </div>
+                            {alerts.seuils_bas.map(item => (
+                              <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <span>{item.nom_produit}</span>
+                                <span className="font-bold text-yellow-500">{parseFloat(item.quantite_actuelle).toLocaleString()} {item.unite_mesure_produit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => {
+                        setShowStockAlerts(false);
+                        navigate('/stock'); // Navigue vers la page de gestion des stocks
+                      }}
+                      className="w-full text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      Voir toutes les alertes
+                    </button>
+                  </div>
+                </div>
+              </Portal>
+            )}
+          </div>
+          <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-gray-800" title={isOpen ? 'Réduire' : 'Agrandir'}>
+            {isOpen ? '←' : '→'}
+          </button>
+        </div>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="mt-8">
+      <nav className="flex-grow mt-8 overflow-y-auto">
         <ul className="space-y-2 px-4">
           {menuItems.map((item) => {
-            // Afficher l'élément de menu seulement si l'utilisateur a la permission requise
-            if (item.permission && !hasPermission(item.permission)) {
-              return null;
-            }
-
+            if (item.permission && !hasPermission(item.permission)) return null;
             const isActive = getActiveMenu() === item.id;
-
             return (
               <li key={item.id}>
                 <button
                   onClick={() => handleMenuClick(item.path)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors group relative
-                    ${isActive
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'hover:bg-gray-800 text-gray-300 hover:text-white'
-                    }
-                  `}
+                  className={`w-full flex items-center p-3 rounded-lg transition-colors group relative ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
                   title={!isOpen ? item.name : ''}
                 >
-                  <span className={`flex-shrink-0 transition-colors ${
-                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
-                  }`}>
-                    {item.icon}
-                  </span>
+                  <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>{item.icon}</span>
                   {isOpen && (
                     <div className="ml-3 flex-1 min-w-0 text-left">
-                      <span className={`font-medium block truncate ${
-                        isActive ? 'text-white' : ''
-                      }`}>
-                        {item.name}
-                      </span>
-                      <span className={`text-xs block truncate ${
-                        isActive ? 'text-blue-100' : 'text-gray-400'
-                      }`}>
-                        {item.description}
-                      </span>
+                      <span className="font-medium block truncate">{item.name}</span>
+                      <span className={`text-xs block truncate ${isActive ? 'text-blue-100' : 'text-gray-400'}`}>{item.description}</span>
                     </div>
                   )}
                   {!isOpen && (
-                    <div className="absolute left-16 bg-gray-800 text-white px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+                    <div className="absolute left-full ml-4 bg-gray-800 text-white px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
                       <div className="font-medium">{item.name}</div>
                       <div className="text-xs text-gray-300">{item.description}</div>
                     </div>
                   )}
-                  {/* Indicateur visuel pour le menu actif */}
-                  {isActive && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>
-                  )}
+                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>}
                 </button>
               </li>
             );
@@ -245,38 +315,22 @@ const Sidebar = ({ user, onLogout }) => {
         </ul>
       </nav>
 
-      {/* Footer utilisateur enrichi */}
-      <div className="mt-auto p-4">
-        <div className="flex items-center p-3 rounded-lg bg-gray-800 border border-gray-700">
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex items-center p-2 rounded-lg bg-gray-800">
           <div className="relative flex-shrink-0">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
               {getInitials(user?.first_name, user?.last_name, user?.username)}
             </div>
-            {/* Indicateur de connexion */}
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
           </div>
           {isOpen && (
             <div className="ml-3 flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {user?.is_superuser ? 'Admin' : (user?.role_nom || 'Utilisateur')}
-                </span>
-              </div>
-              <div className="flex items-center mt-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-xs text-green-400">En ligne</span>
-              </div>
+              <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
+              <p className="text-xs text-green-400">En ligne</p>
             </div>
           )}
           {isOpen && (
-            <button
-              className="ml-2 p-1 rounded hover:bg-gray-700 transition-colors"
-              title="Déconnexion"
-              onClick={handleLogoutClick}
-            >
+            <button className="ml-2 p-1 rounded hover:bg-gray-700" title="Déconnexion" onClick={handleLogoutClick}>
               <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd"/>
               </svg>
@@ -285,17 +339,7 @@ const Sidebar = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Modal de confirmation de déconnexion */}
-      <ConfirmModal
-        isOpen={showLogoutModal}
-        onClose={handleCancelLogout}
-        onConfirm={handleConfirmLogout}
-        title="Confirmer la déconnexion"
-        message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter de l'application ?`}
-        confirmText="Se déconnecter"
-        cancelText="Annuler"
-        type="warning"
-      />
+      <ConfirmModal isOpen={showLogoutModal} onClose={handleCancelLogout} onConfirm={handleConfirmLogout} title="Confirmer la déconnexion" message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter ?`} confirmText="Se déconnecter" cancelText="Annuler" type="warning" />
     </div>
   );
 };

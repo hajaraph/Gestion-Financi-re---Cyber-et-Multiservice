@@ -36,4 +36,5 @@ urlpatterns = [
     
     # URL pour les statistiques du tableau de bord
     path('api/dashboard-stats/', views.dashboard_stats, name='dashboard-stats'),
+    path('api/stock-alerts/', views.stock_alerts, name='stock-alerts'),
 ]

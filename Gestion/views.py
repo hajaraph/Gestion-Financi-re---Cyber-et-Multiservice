@@ -42,6 +42,31 @@ import json
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def stock_alerts(request):
+    """
+    Retourne les produits en rupture de stock et ceux avec un stock bas.
+    """
+    # Produits en rupture de stock (quantité <= 0)
+    ruptures = Stock.objects.filter(produit__actif=True, quantite_actuelle__lte=0)
+    
+    # Produits avec un stock bas (quantité entre 1 et 5)
+    seuils_bas = Stock.objects.filter(
+        produit__actif=True, 
+        quantite_actuelle__gt=0, 
+        quantite_actuelle__lte=5
+    )
+    
+    ruptures_serializer = StockSerializer(ruptures, many=True)
+    seuils_bas_serializer = StockSerializer(seuils_bas, many=True)
+    
+    return Response({
+        'ruptures': ruptures_serializer.data,
+        'seuils_bas': seuils_bas_serializer.data,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def dashboard_stats(request):
     """
     Vue pour récupérer toutes les statistiques nécessaires pour le tableau de bord.
@@ -966,7 +991,7 @@ class PalierRemiseViewSet(viewsets.ModelViewSet):
                 remise_appliquee = remise
                 break
 
-        montant_original = quantite * prix_original
+        montant_original = Decimal(str(quantite)) * Decimal(str(prix_original))
         montant_final = quantite * prix_final
         economie = montant_original - montant_final
         pourcentage_economie = (economie / montant_original * 100) if montant_original > 0 else 0
@@ -1292,14 +1317,13 @@ class StockViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        produit = Produit.objects.get(pk=data['produit_id'])
-        stock = produit.stock
+        stock = Stock.objects.get(produit_id=data['produit_id'])
 
         quantite_achat = data['quantite_achat']
         prix_total_achat = data['prix_total_achat']
 
         # Conversion en unité de base
-        quantite_base = quantite_achat * produit.quantite_par_unite_achat
+        quantite_base = quantite_achat * stock.produit.quantite_par_unite_achat
         if quantite_base == 0:
             return Response({'error': 'La quantité résultante ne peut pas être zéro.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1323,7 +1347,7 @@ class StockViewSet(viewsets.ModelViewSet):
             prix_unitaire=prix_unitaire_base,
             fournisseur=data.get('fournisseur', ''),
             numero_facture=data.get('numero_facture', ''),
-            commentaire=data.get('commentaire', f"Achat de {quantite_achat} {produit.unite_achat.symbole if produit.unite_achat else ''}"),
+            commentaire=data.get('commentaire', f"Achat de {quantite_achat} {stock.produit.unite_achat.symbole if stock.produit.unite_achat else ''}"),
             utilisateur=request.user
         )
 

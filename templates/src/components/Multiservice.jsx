@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
     const [lignes, setLignes] = useState([]);
@@ -182,6 +183,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
 };
 
 const Multiservice = () => {
+    useDocumentTitle('Multiservices');
     const [ventes, setVentes] = useState([]);
     const [tarifs, setTarifs] = useState([]);
     const [loading, setLoading] = useState(true);

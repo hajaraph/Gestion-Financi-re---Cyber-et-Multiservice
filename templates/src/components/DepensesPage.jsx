@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { depenseAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
-import { FaPlus, FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const DepensesPage = () => {
+    useDocumentTitle('Gestion des Dépenses');
     const [depenses, setDepenses] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -132,11 +134,15 @@ const DepensesPage = () => {
     return (
         <div className="p-6">
             {notification && (
-                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-                    notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
-                } text-white`}>
-                    <NotificationIcon type={notification.type} />
-                    <span>{notification.message}</span>
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
+                    ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
+                    <div className="flex items-center gap-2">
+                        <NotificationIcon type={notification.type} className="w-5 h-5" />
+                        <span>{notification.message}</span>
+                    </div>
+                    <button onClick={() => setNotification(null)} className="text-white hover:text-gray-100">
+                        <FaTimes />
+                    </button>
                 </div>
             )}
             

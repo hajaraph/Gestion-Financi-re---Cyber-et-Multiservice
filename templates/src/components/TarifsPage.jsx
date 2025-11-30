@@ -3,8 +3,10 @@ import { tarifAPI, produitAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
 import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const TarifsPage = () => {
+  useDocumentTitle('Gestion des Tarifs');
   const [tarifs, setTarifs] = useState([]);
   const [produits, setProduits] = useState([]);
   const [loading, setLoading] = useState(true);

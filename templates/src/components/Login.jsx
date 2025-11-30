@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -9,6 +10,8 @@ const Login = ({ onLogin }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -16,8 +19,6 @@ const Login = ({ onLogin }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-
-    // Effacer l'erreur quand l'utilisateur commence à taper
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -25,78 +26,38 @@ const Login = ({ onLogin }) => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
-    }
-
-    if (!formData.password.trim()) {
-      newErrors.password = 'Le mot de passe est requis';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
-    }
-
+    if (!formData.username.trim()) newErrors.username = 'Le nom d\'utilisateur est requis';
+    if (!formData.password.trim()) newErrors.password = 'Le mot de passe est requis';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Valider le formulaire avant la soumission
-    const isValid = validateForm();
-    if (!isValid) {
-      return; // Ne pas continuer si le formulaire n'est pas valide
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
-    setErrors({}); // Réinitialiser les erreurs précédentes
+    setErrors({});
 
-    try {
-      // Utiliser le service API centralisé
-      const result = await authAPI.login({
-        username: formData.username,
-        password: formData.password,
-        rememberMe: formData.rememberMe
-      });
+    const result = await login({
+      username: formData.username,
+      password: formData.password,
+    });
 
-      if (result.success) {
-        // Stocker les informations de connexion si "rester connecté" est coché
-        if (formData.rememberMe) {
-          localStorage.setItem('rememberUser', formData.username);
-        } else {
-          localStorage.removeItem('rememberUser');
-        }
-
-        // Appeler la fonction onLogin avec les données utilisateur
-        const loginSuccess = await onLogin({
-          ...result.data.user,
-          token: result.data.token
-        });
-
-        // Si la connexion a échoué (token invalide ou autre problème).
-        if (!loginSuccess) {
-          setErrors({ 
-            general: 'Échec de la connexion. Veuillez réessayer.' 
-          });
-        }
+    if (result.success) {
+      if (formData.rememberMe) {
+        localStorage.setItem('rememberUser', formData.username);
       } else {
-        // Afficher l'erreur retournée par le service API
-        setErrors({ 
-          general: result.error || 'Nom d\'utilisateur ou mot de passe incorrect' 
-        });
+        localStorage.removeItem('rememberUser');
       }
-    } catch (error) {
-      console.error('Erreur de connexion:', error);
-      setErrors({ 
-        general: 'Erreur de connexion au serveur. Veuillez réessayer.' 
-      });
-    } finally {
-      setIsLoading(false);
+      navigate('/dashboard');
+    } else {
+      setErrors({ general: result.error || 'Échec de la connexion.' });
     }
+
+    setIsLoading(false);
   };
 
-  // Récupérer le nom d'utilisateur sauvegardé au chargement
   React.useEffect(() => {
     const rememberedUser = localStorage.getItem('rememberUser');
     if (rememberedUser) {

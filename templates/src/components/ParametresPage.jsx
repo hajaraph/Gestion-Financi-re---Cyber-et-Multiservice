@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api'; // Assurez-vous que le chemin est correct
 import { toast } from 'react-toastify'; // Pour les notifications
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const ParametresPage = () => {
+  useDocumentTitle('Paramètres');
   const [parametres, setParametres] = useState(null);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);

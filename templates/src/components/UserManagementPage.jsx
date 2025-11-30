@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { profilAPI, roleAPI, permissionAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
-import { FaCheckCircle, FaTimesCircle, FaInfoCircle } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaInfoCircle, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const emptyForm = {
   username: '',
@@ -22,6 +23,7 @@ const emptyForm = {
 };
 
 const UserManagementPage = ({ user }) => { // Réception de l'objet user
+  useDocumentTitle('Gestion des Utilisateurs');
   const [profils, setProfils] = useState([]);
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
@@ -179,6 +181,11 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
           newRef.add(permissionId);
           newSupp.delete(permissionId); // Supprimer si elle était supplémentaire
         }
+        // Si la permission est refusée, elle ne peut pas être supplémentaire
+        if (newSupp.has(permissionId)) newSupp.delete(permissionId);
+      } else if (type === 'none') {
+        newSupp.delete(permissionId);
+        newRef.delete(permissionId);
       }
 
       return {
@@ -251,11 +258,15 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
   return (
     <div className="p-6 relative">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-        } text-white`}>
-          <NotificationIcon type={notification.type} />
-          <span>{notification.message}</span>
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
+          ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
+          <div className="flex items-center gap-2">
+            <NotificationIcon type={notification.type} className="w-5 h-5" />
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-white hover:text-gray-100">
+            <FaTimes />
+          </button>
         </div>
       )}
 

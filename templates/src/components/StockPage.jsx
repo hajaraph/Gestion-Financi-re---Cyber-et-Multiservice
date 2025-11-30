@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory } from 'react-icons/fa';
+import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import useDocumentTitle from '../hooks/useDocumentTitle';
+import { useStockAlert } from '../context/StockAlertContext';
 
 const StockPage = () => {
+  useDocumentTitle('Gestion des Stocks');
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
+  const { refreshAlerts } = useStockAlert();
   
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [isSubmittingEntry, setIsSubmittingEntry] = useState(false);
@@ -115,6 +119,7 @@ const StockPage = () => {
       const result = await stockAPI.recordEntry(payload);
       if (result.success) {
         await loadStocks();
+        await refreshAlerts();
         setShowEntryModal(false);
         notify('Entrée de stock enregistrée avec succès');
       } else {
@@ -148,6 +153,7 @@ const StockPage = () => {
       const result = await stockAPI.adjustStock(currentStock.id, payload);
       if (result.success) {
         await loadStocks();
+        await refreshAlerts();
         setShowAdjustmentModal(false);
         notify('Ajustement de stock enregistré avec succès');
       } else {
@@ -180,6 +186,7 @@ const StockPage = () => {
       const result = await stockAPI.revalueStockPrice(currentStock.id, payload);
       if (result.success) {
         await loadStocks();
+        await refreshAlerts();
         setShowRevaluationModal(false);
         notify('Prix d\'achat moyen réévalué avec succès');
       } else {
@@ -237,11 +244,15 @@ const StockPage = () => {
   return (
     <div className="p-6">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-        } text-white`}>
-          <NotificationIcon type={notification.type} />
-          <span>{notification.message}</span>
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
+          ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
+          <div className="flex items-center gap-2">
+            <NotificationIcon type={notification.type} className="w-5 h-5" />
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-white hover:text-gray-100">
+            <FaTimes />
+          </button>
         </div>
       )}
 

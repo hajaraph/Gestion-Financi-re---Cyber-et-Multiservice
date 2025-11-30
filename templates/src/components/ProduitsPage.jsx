@@ -3,6 +3,7 @@ import { produitAPI, categorieProduitAPI, uniteMesureAPI } from '../services/api
 import { useCrud } from '../hooks/useCrud';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const emptyForm = {
   designation: '',
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 const ProduitsPage = () => {
+  useDocumentTitle('Gestion des Produits');
   const [search, setSearch] = useState('');
 
   const loadDependencies = useCallback(async () => {

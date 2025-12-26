@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance_backend
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+      - db_volume:/app/db
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.example
+    environment:
+      # Valeurs par défaut si .env n'existe pas ou est incomplet
+      - DEBUG=0
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - SECRET_KEY=django-insecure-change-me-in-production
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./templates
+      dockerfile: Dockerfile
+      # Nous n'avons plus besoin de passer VITE_API_URL ici car nous l'avons géré dans api.js
+    container_name: finance_frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    volumes:
+      - static_volume:/usr/share/nginx/html/static
+      - media_volume:/usr/share/nginx/html/media
+    restart: unless-stopped
+
+volumes:
+  static_volume:
+  media_volume:
+  db_volume:

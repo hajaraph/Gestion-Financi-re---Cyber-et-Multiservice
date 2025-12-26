@@ -2,7 +2,11 @@ import axios from 'axios';
 import { setupAuthInterceptor, setupErrorInterceptor } from './interceptors';
 
 // Configuration de base d'Axios
-const API_BASE_URL = 'http://127.0.0.1:8000';
+// IMPORTANT : On laisse baseURL vide.
+// Ainsi, les requêtes seront relatives au domaine actuel (ex: http://localhost/...)
+// C'est Nginx (sur le port 80) qui recevra ces requêtes et les redirigera vers le backend (port 8000)
+// grâce aux règles "location /api/" et "location /auth/" définies dans nginx.conf.
+const API_BASE_URL = '';
 
 // Créer une instance Axios avec configuration par défaut
 const apiClient = axios.create({
@@ -32,18 +36,15 @@ const handleApiResponse = async (request) => {
 };
 
 // Services d'authentification
+// Nginx redirige /auth/ vers le backend
 export const authAPI = {
-  // Connexion (maintenant simplifiée et cohérente)
   login: async (credentials) => handleApiResponse(() => apiClient.post('/auth/login/', credentials)),
-
-  // Déconnexion
   logout: async () => handleApiResponse(() => apiClient.post('/auth/logout/')),
-
-  // Vérification du token
   verifyToken: async () => handleApiResponse(() => apiClient.get('/auth/verify-token/')),
 };
 
 // Services pour les permissions
+// Nginx redirige /api/ vers le backend
 export const permissionAPI = {
   getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/permissions/', { params })),
   create: async (data) => handleApiResponse(() => apiClient.post('/api/permissions/', data)),

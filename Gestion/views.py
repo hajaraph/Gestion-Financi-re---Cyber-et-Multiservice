@@ -73,7 +73,7 @@ def dashboard_stats(request):
     """
     period = request.query_params.get('period', 'today')
     today = timezone.now().date()
-    
+
     if period == 'week':
         start_date = today - timedelta(days=today.weekday())
     elif period == 'month':
@@ -83,7 +83,7 @@ def dashboard_stats(request):
 
     end_date = today
 
-    date_range = Q(date_transaction__date__gte=start_date, date_transaction__date__lte=end_date)
+    Q(date_transaction__date__gte=start_date, date_transaction__date__lte=end_date)
 
     # 1. Statistiques principales
     recettes = Transaction.objects.filter(
@@ -109,7 +109,7 @@ def dashboard_stats(request):
         transaction__date_transaction__date__lte=end_date,
         tarif_service__categorie='IMPRESSION'
     ).aggregate(total=Sum('quantite'))['total'] or 0
-    
+
     photocopies = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
         transaction__date_transaction__date__lte=end_date,
@@ -164,7 +164,7 @@ def dashboard_stats(request):
             'benefice_net': benefice_net
         }
     }
-    
+
     if period == 'today':
         yesterday = today - timedelta(days=1)
         recettes_hier = Transaction.objects.filter(
@@ -383,7 +383,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request, pk=None):
+    def dupliquer(self, request, **kwargs):
         """Dupliquer un rôle avec un nouveau nom"""
         role_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -466,7 +466,7 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
-    def modifier_permissions(self, request, pk=None):
+    def modifier_permissions(self, request, **kwargs):
         """Modifier les permissions d'un utilisateur"""
         profil = self.get_object()
 
@@ -716,7 +716,7 @@ class TarifServiceViewSet(viewsets.ModelViewSet):
         return Response(list(codes))
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request, pk=None):
+    def dupliquer(self, request, **kwargs):
         """Dupliquer un service avec un nouveau nom"""
         tarif_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -1071,7 +1071,7 @@ class TypePapierViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
-    def dupliquer(self, request, pk=None):
+    def dupliquer(self, request, **kwargs):
         """Dupliquer un type de papier avec un nouveau code"""
         type_original = self.get_object()
         nouveau_nom = request.data.get('nouveau_nom')
@@ -1168,7 +1168,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'])
-    def mouvements(self, request, pk=None):
+    def mouvements(self, request, **kwargs):
         """
         Liste tous les mouvements de stock pour ce produit
         """
@@ -1184,7 +1184,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
-    def mettre_a_jour_prix(self, request, pk=None):
+    def mettre_a_jour_prix(self, request, **kwargs):
         """
         Mettre à jour le prix de vente d'un produit
         """
@@ -1237,7 +1237,7 @@ class ProduitViewSet(viewsets.ModelViewSet):
         return Response(result)
 
     @action(detail=True, methods=['get'])
-    def historique_prix(self, request, pk=None):
+    def historique_prix(self, request, **kwargs):
         """
         Retourne l'historique des prix d'achat pour ce produit
         """
@@ -1295,7 +1295,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return queryset.order_by('produit__designation')
 
     @action(detail=True, methods=['get'], serializer_class=MouvementStockSerializer)
-    def historique(self, request, pk=None):
+    def historique(self, request, **kwargs):
         """
         Retourne l'historique des mouvements de stock pour un produit spécifique.
         """
@@ -1358,7 +1358,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post']) # Nouvel endpoint pour l'ajustement
-    def ajuster_stock(self, request, pk=None):
+    def ajuster_stock(self, request, **kwargs):
         stock = self.get_object()
         quantite_ajustement_raw = request.data.get('quantite')
         type_ajustement = request.data.get('type_ajustement') # 'AUGMENTATION' ou 'DIMINUTION'
@@ -1401,7 +1401,7 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post']) # Nouvel endpoint pour la réévaluation du prix moyen
-    def revaluer_prix_moyen(self, request, pk=None):
+    def revaluer_prix_moyen(self, request, **kwargs):
         stock = self.get_object()
         nouveau_prix_achat_moyen_raw = request.data.get('nouveau_prix_achat_moyen')
         commentaire = request.data.get('commentaire', 'Réévaluation manuelle du prix moyen')
@@ -1580,7 +1580,7 @@ class MouvementStockViewSet(viewsets.ModelViewSet):
             'type_mouvement': type_mouvement,
             'motif': motif,
             'quantite': quantite,
-            'prix_unitaire': stock.prix_unitaire_achat,
+            'prix_unitaire': stock.prix_achat_moyen,
             'commentaire': request.data.get('commentaire', '')
         }
 
@@ -1636,7 +1636,7 @@ class VenteGroupeViewSet(viewsets.ModelViewSet):
         return VenteGroupeeSerializer
 
     @action(detail=True, methods=['get'])
-    def imprimer_facture(self, request, pk=None):
+    def imprimer_facture(self, request, **kwargs):
         try:
             vente = self.get_object()
             template = get_template('invoice_template.html')

@@ -23,8 +23,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-0*_w+duhpgm)y)2fq4h8a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = int(os.environ.get('DEBUG', 1))
 
-# Gestion robuste de ALLOWED_HOSTS (suppression des espaces)
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,89.88.141.132').split(',')
 
 
 # Application definition
@@ -156,13 +155,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5174",
     "http://localhost",
     "http://127.0.0.1",
-    "http://localhost:8888",
-    "http://127.0.0.1:8888",
 ]
-
-# Ajout dynamique des origines CORS depuis les variables d'environnement
-env_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
-CORS_ALLOWED_ORIGINS += [origin.strip() for origin in env_cors if origin.strip()]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -170,37 +163,4 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
-    "http://localhost:8888",
-    "http://127.0.0.1:8888",
 ]
-
-# Ajout dynamique des origines CSRF depuis les variables d'environnement
-env_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
-CSRF_TRUSTED_ORIGINS += [origin.strip() for origin in env_csrf if origin.strip()]
-
-# Configuration des logs pour voir les erreurs dans la console Docker
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'django.security.DisallowedHost': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-    },
-}

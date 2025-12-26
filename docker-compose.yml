@@ -13,11 +13,6 @@ services:
       - "8000:8000"
     env_file:
       - .env.example
-    environment:
-      # Valeurs par défaut si .env n'existe pas ou est incomplet
-      - DEBUG=0
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - SECRET_KEY=django-insecure-change-me-in-production
     restart: unless-stopped
 
   frontend:

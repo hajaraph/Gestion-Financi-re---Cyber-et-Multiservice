@@ -29,7 +29,7 @@ services:
       # Nous n'avons plus besoin de passer VITE_API_URL ici car nous l'avons géré dans api.js
     container_name: finance_frontend
     ports:
-      - "8080:8080"
+      - "8888:80"
     depends_on:
       - backend
     volumes:

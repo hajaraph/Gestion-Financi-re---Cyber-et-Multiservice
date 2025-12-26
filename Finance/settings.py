@@ -153,10 +153,16 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    "http://localhost:",
+    "http://localhost",
     "http://127.0.0.1",
-    "http://89.88.141.132:8888"
+    "http://localhost:8888",
+    "http://127.0.0.1:8888",
 ]
+
+# Ajout dynamique des origines CORS depuis les variables d'environnement
+CORS_ALLOWED_ORIGINS += os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+# Nettoyage des chaînes vides si la variable d'env est vide
+CORS_ALLOWED_ORIGINS = [origin for origin in CORS_ALLOWED_ORIGINS if origin]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -164,5 +170,11 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
-    "http://89.88.141.132:8888"
+    "http://localhost:8888",
+    "http://127.0.0.1:8888",
 ]
+
+# Ajout dynamique des origines CSRF depuis les variables d'environnement
+CSRF_TRUSTED_ORIGINS += os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+# Nettoyage des chaînes vides
+CSRF_TRUSTED_ORIGINS = [origin for origin in CSRF_TRUSTED_ORIGINS if origin]

@@ -1681,6 +1681,13 @@ def login_view(request):
                 # Créer ou récupérer le token
                 token, created = Token.objects.get_or_create(user=user)
 
+                # Récupérer les permissions de l'utilisateur
+                try:
+                    profil = user.profil
+                    permissions = profil.obtenir_toutes_permissions()
+                except Exception:
+                    permissions = []
+
                 return Response({
                     'success': True,
                     'message': 'Connexion réussie',
@@ -1691,6 +1698,8 @@ def login_view(request):
                         'email': user.email,
                         'first_name': user.first_name,
                         'last_name': user.last_name,
+                        'is_superuser': user.is_superuser,
+                        'permissions': permissions,
                         'rememberMe': remember_me
                     }
                 }, status=status.HTTP_200_OK)
@@ -1745,6 +1754,13 @@ def verify_token(request):
     Vérifier la validité du token
     """
     try:
+        # Récupérer les permissions de l'utilisateur
+        try:
+            profil = request.user.profil
+            permissions = profil.obtenir_toutes_permissions()
+        except Exception:
+            permissions = []
+
         return Response({
             'valid': True,
             'user': {
@@ -1753,6 +1769,8 @@ def verify_token(request):
                 'email': request.user.email,
                 'first_name': request.user.first_name,
                 'last_name': request.user.last_name,
+                'is_superuser': request.user.is_superuser,
+                'permissions': permissions,
             }
         }, status=status.HTTP_200_OK)
     except Exception as e:

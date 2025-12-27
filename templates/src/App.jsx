@@ -59,7 +59,7 @@ const AppContent = () => {
           <Route path="/stock" element={<MainLayout><PageWrapper><StockPage /></PageWrapper></MainLayout>} />
           <Route path="/produits" element={<MainLayout><PageWrapper><ProduitsPage /></PageWrapper></MainLayout>} />
           <Route path="/categories" element={<MainLayout><PageWrapper><CategoriesPage /></PageWrapper></MainLayout>} />
-          <Route path="/utilisateurs" element={<MainLayout><PageWrapper><UserManagementPage /></PageWrapper></MainLayout>} />
+          <Route path="/utilisateurs" element={<MainLayout><PageWrapper><UserManagementPage user={user} /></PageWrapper></MainLayout>} />
           <Route path="/parametres" element={<MainLayout><PageWrapper><ParametresPage /></PageWrapper></MainLayout>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

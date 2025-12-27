@@ -282,7 +282,14 @@ const TarifsPage = () => {
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {tarif.consommations.map(c => `${c.produit_nom} (x${c.quantite})`).join(', ') || 'Aucun'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">{tarif.prix_unitaire} Ar</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div>{tarif.prix_unitaire} Ar</div>
+                      {tarif.nombre_paliers > 0 && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-normal">
+                          {tarif.nombre_paliers} palier(s) remise
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <button

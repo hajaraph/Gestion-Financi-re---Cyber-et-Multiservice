@@ -14,6 +14,7 @@ const VenteProduitPage = () => {
   const [quantite, setQuantite] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [remise, setRemise] = useState(0);
   const [recentSales, setRecentSales] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { refreshAlerts } = useStockAlert();
@@ -52,6 +53,7 @@ const VenteProduitPage = () => {
   const openConfirmModal = (produit) => {
     setSelectedProduit(produit);
     setQuantite(1);
+    setRemise(0);
     setShowConfirmModal(true);
   };
 
@@ -63,10 +65,11 @@ const VenteProduitPage = () => {
     }
     setIsSubmitting(true);
     try {
+      const totalApresRemise = Math.max(0, (selectedProduit.prix_vente * quantite) - remise);
       const payload = {
         produit: selectedProduit.id,
         quantite: quantite,
-        prix_unitaire: selectedProduit.prix_vente,
+        prix_unitaire: totalApresRemise / quantite, // Envoyer le prix unitaire effectif
       };
       const result = await venteProduitAPI.create(payload);
       if (result.success) {
@@ -108,7 +111,7 @@ const VenteProduitPage = () => {
         </div>
       )}
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Point de Vente Directe</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Colonne de sélection des produits */}
         <div className="bg-white p-6 rounded-lg shadow">
@@ -132,9 +135,9 @@ const VenteProduitPage = () => {
                 >
                   <p className="font-semibold">{p.designation}</p>
                   <p className="text-sm text-gray-600">
-                    {p.prix_vente.toLocaleString('fr-FR')} Ar - 
+                    {p.prix_vente.toLocaleString('fr-FR')} Ar -
                     <span className={p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'font-bold text-red-500' : ''}>
-                       Stock: {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
+                      Stock: {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
                     </span>
                   </p>
                 </div>
@@ -147,41 +150,41 @@ const VenteProduitPage = () => {
 
         {/* Colonne des ventes récentes */}
         <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Ventes du Jour</h2>
-            <div className="max-h-[70vh] overflow-y-auto">
-                {loading ? (
-                  <p>Chargement...</p>
-                ) : recentSales.length > 0 ? (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qté</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {recentSales.map(sale => (
-                                <tr key={sale.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sale.produit_designation}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(sale.transaction.date_transaction).toLocaleString('fr-FR', {
-                                            hour: '2-digit', minute: '2-digit'
-                                        })}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">{sale.quantite}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                                        {(sale.quantite * sale.prix_unitaire).toLocaleString('fr-FR')} Ar
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <EmptyState message="Aucune vente enregistrée pour aujourd'hui." />
-                )}
-            </div>
+          <h2 className="text-xl font-semibold mb-4">Ventes du Jour</h2>
+          <div className="max-h-[70vh] overflow-y-auto">
+            {loading ? (
+              <p>Chargement...</p>
+            ) : recentSales.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qté</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {recentSales.map(sale => (
+                    <tr key={sale.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sale.produit_designation}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(sale.transaction.date_transaction).toLocaleString('fr-FR', {
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">{sale.quantite}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                        {(sale.quantite * sale.prix_unitaire).toLocaleString('fr-FR')} Ar
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <EmptyState message="Aucune vente enregistrée pour aujourd'hui." />
+            )}
+          </div>
         </div>
       </div>
 
@@ -198,32 +201,47 @@ const VenteProduitPage = () => {
               </button>
             </div>
             <form onSubmit={handleVente} className="p-6 space-y-4">
-                <div>
-                    <p className="text-gray-500">Produit</p>
-                    <p className="text-lg font-bold">{selectedProduit.designation}</p>
+              <div>
+                <p className="text-gray-500">Produit</p>
+                <p className="text-lg font-bold">{selectedProduit.designation}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Quantité</label>
+                <input
+                  type="number"
+                  value={quantite}
+                  onChange={(e) => setQuantite(e.target.value)}
+                  min="1"
+                  max={selectedProduit.stock.quantite_actuelle}
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Réduction (Ar)</label>
+                <input
+                  type="number"
+                  value={remise}
+                  onChange={(e) => setRemise(parseFloat(e.target.value) || 0)}
+                  min="0"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-red-600 font-semibold"
+                  placeholder="Montant à déduire..."
+                />
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg text-right space-y-1">
+                <div className="text-sm text-gray-500">Sous-total: {(selectedProduit.prix_vente * quantite).toLocaleString('fr-FR')} Ar</div>
+                {remise > 0 && <div className="text-sm text-red-500">Remise: -{remise.toLocaleString('fr-FR')} Ar</div>}
+                <div className="text-2xl font-bold text-blue-600">
+                  Total: {Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Quantité</label>
-                    <input
-                    type="number"
-                    value={quantite}
-                    onChange={(e) => setQuantite(e.target.value)}
-                    min="1"
-                    max={selectedProduit.stock.quantite_actuelle}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                </div>
-                <div className="text-2xl font-bold text-right">
-                    Total: {(selectedProduit.prix_vente * quantite).toLocaleString('fr-FR')} Ar
-                </div>
-                <div className="flex gap-3 pt-4">
-                    <button type="button" onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmitting}>
-                        Annuler
-                    </button>
-                    <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50">
-                        {isSubmitting ? 'Enregistrement...' : 'Valider la Vente'}
-                    </button>
-                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmitting}>
+                  Annuler
+                </button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50">
+                  {isSubmitting ? 'Enregistrement...' : 'Valider la Vente'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

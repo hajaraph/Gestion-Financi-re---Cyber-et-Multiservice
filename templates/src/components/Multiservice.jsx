@@ -16,6 +16,32 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
         setTotal(newTotal);
     }, [lignes]);
 
+    const calculatePriceWithDiscounts = (tarifId, qte) => {
+        const tarif = tarifs.find(t => t.id === parseInt(tarifId));
+        if (!tarif) return 0;
+
+        const originalPrice = parseFloat(tarif.prix_unitaire);
+        if (!tarif.paliers_remise || tarif.paliers_remise.length === 0) return originalPrice;
+
+        // Filtrer les paliers valides (quantité ok et actif)
+        const paliersValides = tarif.paliers_remise
+            .filter(p => p.actif && parseFloat(qte) >= parseFloat(p.quantite_minimum))
+            .sort((a, b) => b.quantite_minimum - a.quantite_minimum);
+
+        if (paliersValides.length === 0) return originalPrice;
+
+        const bestPalier = paliersValides[0];
+
+        if (bestPalier.type_remise === 'POURCENTAGE') {
+            return originalPrice * (1 - parseFloat(bestPalier.valeur_remise) / 100);
+        } else if (bestPalier.type_remise === 'MONTANT_FIXE') {
+            return Math.max(0, originalPrice - parseFloat(bestPalier.valeur_remise));
+        } else if (bestPalier.type_remise === 'PRIX_UNITAIRE') {
+            return parseFloat(bestPalier.valeur_remise);
+        }
+        return originalPrice;
+    };
+
     const handleAddLigne = () => {
         if (tarifs.length > 0) {
             const defaultTarif = tarifs[0];
@@ -24,7 +50,9 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 tarif_service_id: defaultTarif.id,
                 nom_service: defaultTarif.nom_service,
                 quantite: 1,
+                prix_unitaire_original: defaultTarif.prix_unitaire,
                 prix_unitaire: defaultTarif.prix_unitaire,
+                remise_manuelle: 0,
                 consommations: defaultTarif.consommations,
             }]);
         }
@@ -39,9 +67,13 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                     if (selectedTarif) {
                         updatedLigne.tarif_service_id = selectedTarif.id;
                         updatedLigne.nom_service = selectedTarif.nom_service;
-                        updatedLigne.prix_unitaire = selectedTarif.prix_unitaire;
+                        updatedLigne.prix_unitaire_original = selectedTarif.prix_unitaire;
+                        updatedLigne.prix_unitaire = calculatePriceWithDiscounts(selectedTarif.id, updatedLigne.quantite);
                         updatedLigne.consommations = selectedTarif.consommations;
                     }
+                } else if (field === 'quantite') {
+                    updatedLigne.quantite = parseFloat(value) || 0;
+                    updatedLigne.prix_unitaire = calculatePriceWithDiscounts(updatedLigne.tarif_service_id, updatedLigne.quantite);
                 } else {
                     updatedLigne[field] = parseFloat(value) || 0;
                 }
@@ -63,7 +95,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
             setErrors({ general: 'Veuillez ajouter au moins un service.' });
             return;
         }
-        
+
         const invalidLine = lignes.find(l => l.quantite <= 0);
         if (invalidLine) {
             setErrors({ general: `La quantité pour le service "${invalidLine.nom_service}" doit être supérieure à zéro.` });
@@ -128,49 +160,89 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                     </div>
                     <div className="space-y-4">
                         {lignes.map((ligne) => (
-                            <div key={ligne.id} className={`p-3 rounded-lg ${errors.stock?.[ligne.id] ? 'bg-red-50 border border-red-300' : 'bg-gray-50 border border-gray-200'}`}>
-                                <div className="grid grid-cols-12 gap-3 items-start">
-                                    <div className="col-span-12 md:col-span-4">
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Service</label>
-                                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg" value={ligne.tarif_service_id} onChange={(e) => handleLigneChange(ligne.id, 'tarif_service_id', e.target.value)}>
+                            <div key={ligne.id} className={`p-4 rounded-xl border mb-4 transition-all ${errors.stock?.[ligne.id] ? 'bg-red-50 border-red-300 shadow-sm' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}>
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                    <div className="md:col-span-4">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Service</label>
+                                        <select
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                            value={ligne.tarif_service_id}
+                                            onChange={(e) => handleLigneChange(ligne.id, 'tarif_service_id', e.target.value)}
+                                        >
                                             {tarifs.map(t => <option key={t.id} value={t.id}>{t.nom_service}</option>)}
                                         </select>
                                     </div>
-                                    <div className="col-span-6 md:col-span-2">
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Quantité</label>
-                                        <input type="number" min="1" placeholder="Qté" value={ligne.quantite} onChange={(e) => handleLigneChange(ligne.id, 'quantite', e.target.value)} className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${errors.stock?.[ligne.id] ? 'border-red-500' : ''}`} />
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Quantité</label>
+                                        <input
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            placeholder="Qté"
+                                            value={ligne.quantite}
+                                            onChange={(e) => handleLigneChange(ligne.id, 'quantite', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.stock?.[ligne.id] ? 'border-red-500' : 'border-gray-300'}`}
+                                        />
                                     </div>
-                                    <div className="col-span-6 md:col-span-2">
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Prix Unitaire</label>
-                                        <input type="number" value={ligne.prix_unitaire} className="w-full px-3 py-2 border-gray-200 bg-gray-100 rounded-lg" readOnly />
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Prix Unit.</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={ligne.prix_unitaire}
+                                                onChange={(e) => handleLigneChange(ligne.id, 'prix_unitaire', e.target.value)}
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) ? 'bg-purple-50 text-purple-700 font-bold border-purple-200' : 'bg-white border-gray-300'}`}
+                                            />
+                                            {ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) && (
+                                                <span className="absolute -top-4 right-0 text-[10px] text-purple-400 font-bold line-through">
+                                                    {(ligne.prix_unitaire_original || ligne.prix_unitaire).toLocaleString()} Ar
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="col-span-10 md:col-span-3">
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Sous-total</label>
-                                        <input type="text" value={(ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR') + ' Ar'} className="w-full px-3 py-2 border-gray-200 bg-gray-100 rounded-lg" readOnly />
+                                    <div className="md:col-span-3">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Sous-total</label>
+                                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-bold text-gray-800 text-right">
+                                            {(ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
+                                        </div>
                                     </div>
-                                    <div className="col-span-2 md:col-span-1 flex items-end h-full">
-                                        <button type="button" onClick={() => handleRemoveLigne(ligne.id)} className="p-2 text-red-500 hover:text-red-700"><FaTrash /></button>
+                                    <div className="md:col-span-1 flex justify-center pb-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveLigne(ligne.id)}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Supprimer la ligne"
+                                        >
+                                            <FaTrash />
+                                        </button>
                                     </div>
                                 </div>
-                                {ligne.consommations.length > 0 && (
-                                    <div className="mt-2 pl-2 border-l-2 border-gray-300">
-                                        {ligne.consommations.map(conso => {
-                                            const quantiteNecessaire = conso.quantite * ligne.quantite;
-                                            const hasStockError = conso.produit_stock < quantiteNecessaire;
+
+                                {ligne.consommations && ligne.consommations.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-4 gap-y-1">
+                                        {ligne.consommations.map((conso, idx) => {
+                                            const qteRequise = conso.quantite * ligne.quantite;
+                                            const stockInsuffisant = conso.produit_stock < qteRequise;
                                             return (
-                                                <div key={conso.produit} className={`text-xs flex items-center gap-2 ${hasStockError ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                                                    <FaBoxOpen /> {conso.produit_nom}: {quantiteNecessaire.toFixed(2)} requis (dispo: {conso.produit_stock})
+                                                <div key={idx} className={`text-[11px] flex items-center gap-1.5 ${stockInsuffisant ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+                                                    <FaBoxOpen className={stockInsuffisant ? 'text-red-500' : 'text-gray-400'} size={12} />
+                                                    {conso.produit_nom}: {qteRequise.toFixed(2)} (Stock: {conso.produit_stock})
                                                 </div>
-                                            )
+                                            );
                                         })}
                                     </div>
                                 )}
-                                {errors.stock?.[ligne.id] && <p className="text-red-600 text-sm mt-1">{errors.stock[ligne.id]}</p>}
+                                {errors.stock?.[ligne.id] && (
+                                    <p className="text-red-600 text-[11px] mt-2 font-medium flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></span>
+                                        {errors.stock[ligne.id]}
+                                    </p>
+                                )}
                             </div>
                         ))}
                     </div>
                 </div>
-            </form>
+            </form >
 
             <div className="p-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white z-10">
                 <div className="text-2xl font-bold">Total: {total.toLocaleString('fr-FR')} Ar</div>
@@ -178,7 +250,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                     <FaSave /> {isSubmitting ? 'Enregistrement...' : 'Valider la Vente'}
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -213,7 +285,7 @@ const Multiservice = () => {
     const dashboardStats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         const ventesAujourdhui = ventes.filter(v => v.date_creation.startsWith(today));
-        
+
         const totalVendu = ventesAujourdhui.reduce((acc, v) => acc + parseFloat(v.transaction.montant), 0);
         const nombreVentes = ventesAujourdhui.length;
 
@@ -279,9 +351,8 @@ const Multiservice = () => {
     return (
         <div className="p-6">
             {notification && (
-                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-                    notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
-                } text-white`}>
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
+                    } text-white`}>
                     <NotificationIcon type={notification.type} />
                     <span>{notification.message}</span>
                 </div>

@@ -143,8 +143,8 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
@@ -272,7 +272,7 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                         Quantité minimum *
                                     </label>
                                     <input
@@ -281,20 +281,20 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                                         step="0.01"
                                         value={formData.quantite_minimum}
                                         onChange={(e) => setFormData({ ...formData, quantite_minimum: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                         placeholder={`Ex: 10 ${tarif.unite_mesure}(s)`}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                         Type de remise *
                                     </label>
                                     <select
                                         required
                                         value={formData.type_remise}
                                         onChange={(e) => setFormData({ ...formData, type_remise: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     >
                                         <option value="POURCENTAGE">Pourcentage (%)</option>
                                         <option value="MONTANT_FIXE">Montant fixe (Ar)</option>
@@ -304,7 +304,7 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                     Valeur de la remise *
                                 </label>
                                 <input
@@ -313,7 +313,7 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                                     step="0.01"
                                     value={formData.valeur_remise}
                                     onChange={(e) => setFormData({ ...formData, valeur_remise: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     placeholder={
                                         formData.type_remise === 'POURCENTAGE'
                                             ? 'Ex: 30 (pour 30%)'
@@ -330,40 +330,40 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                     Description
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     placeholder="Ex: Remise volume pour impression"
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                         Date de début (optionnel)
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.date_debut}
                                         onChange={(e) => setFormData({ ...formData, date_debut: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                         Date de fin (optionnel)
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.date_fin}
                                         onChange={(e) => setFormData({ ...formData, date_fin: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -381,17 +381,17 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                                 </label>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all"
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold transition-all transform active:scale-95"
                                 >
                                     {editingPalier ? 'Modifier' : 'Créer'}
                                 </button>
@@ -401,12 +401,12 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-200 bg-gray-50">
+                <div className="p-4 border-t border-gray-200 bg-gray-50/50">
                     <button
                         onClick={onClose}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-bold transition-all"
                     >
-                        Fermer
+                        Fermer la gestion des remises
                     </button>
                 </div>
             </div>

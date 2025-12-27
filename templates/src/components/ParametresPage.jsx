@@ -82,14 +82,14 @@ const ParametresPage = () => {
   }
 
   return (
-    <div className="p-6 bg-white shadow-md rounded-lg">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Paramètres de l'Entreprise</h1>
+    <div className="p-8 bg-white shadow-xl rounded-2xl border border-gray-100 animate-in fade-in duration-500">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Paramètres de l'Entreprise</h1>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Nom de l'entreprise */}
           <div>
-            <label htmlFor="nom_entreprise" className="block text-sm font-medium text-gray-700">Nom de l'entreprise</label>
+            <label htmlFor="nom_entreprise" className="block text-sm font-semibold text-gray-700 mb-1.5">Nom de l'entreprise</label>
             <input
               type="text"
               name="nom_entreprise"
@@ -97,13 +97,13 @@ const ParametresPage = () => {
               value={formData.nom_entreprise || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
           {/* Adresse */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700">Adresse</label>
+            <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-1.5">Adresse</label>
             <input
               type="text"
               name="address"
@@ -111,13 +111,13 @@ const ParametresPage = () => {
               value={formData.address || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
           {/* Contact */}
           <div>
-            <label htmlFor="contact" className="block text-sm font-medium text-gray-700">Contact</label>
+            <label htmlFor="contact" className="block text-sm font-semibold text-gray-700 mb-1.5">Contact</label>
             <input
               type="text"
               name="contact"
@@ -125,13 +125,13 @@ const ParametresPage = () => {
               value={formData.contact || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
             <input
               type="email"
               name="email"
@@ -139,13 +139,13 @@ const ParametresPage = () => {
               value={formData.email || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
           {/* Devise par défaut */}
           <div>
-            <label htmlFor="default_currency" className="block text-sm font-medium text-gray-700">Devise par défaut</label>
+            <label htmlFor="default_currency" className="block text-sm font-semibold text-gray-700 mb-1.5">Devise par défaut</label>
             <input
               type="text"
               name="default_currency"
@@ -153,13 +153,13 @@ const ParametresPage = () => {
               value={formData.default_currency || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
           {/* Seuil d'alerte de stock par défaut */}
           <div>
-            <label htmlFor="default_stock_alert_threshold" className="block text-sm font-medium text-gray-700">Seuil d'alerte stock par défaut</label>
+            <label htmlFor="default_stock_alert_threshold" className="block text-sm font-semibold text-gray-700 mb-1.5">Seuil d'alerte stock par défaut</label>
             <input
               type="number"
               name="default_stock_alert_threshold"
@@ -167,7 +167,7 @@ const ParametresPage = () => {
               value={formData.default_stock_alert_threshold || ''}
               onChange={handleChange}
               disabled={!isEditing}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-100 p-2"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
@@ -182,31 +182,31 @@ const ParametresPage = () => {
           )}
         </div>
 
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50 p-6 -mx-8 -mb-8">
           {!isEditing ? (
             <button
               type="button"
               onClick={handleEditToggle}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold transition-all transform active:scale-95"
             >
-              Modifier
+              Modifier les paramètres
             </button>
           ) : (
             <>
               <button
                 type="button"
                 onClick={handleEditToggle}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all"
                 disabled={isSaving}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                className="px-8 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 disabled:opacity-50 font-bold transition-all transform active:scale-95"
                 disabled={isSaving}
               >
-                {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                {isSaving ? 'Sauvegarde...' : 'Enregistrer les modifications'}
               </button>
             </>
           )}

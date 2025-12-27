@@ -324,8 +324,8 @@ const TarifsPage = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <h3 className="text-lg font-semibold text-gray-900">{editingTarif ? 'Modifier le tarif' : 'Nouveau tarif'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>
@@ -335,32 +335,32 @@ const TarifsPage = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom du service *</label>
-                <input type="text" required value={formData.nom_service} onChange={e => setFormData({ ...formData, nom_service: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom du service *</label>
+                <input type="text" required value={formData.nom_service} onChange={e => setFormData({ ...formData, nom_service: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
-                  <select required value={formData.categorie} onChange={e => setFormData({ ...formData, categorie: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catégorie *</label>
+                  <select required value={formData.categorie} onChange={e => setFormData({ ...formData, categorie: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none">
                     <option value="">Sélectionner...</option>
                     {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix unitaire (Ar) *</label>
-                  <input type="number" required value={formData.prix_unitaire} onChange={e => setFormData({ ...formData, prix_unitaire: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prix unitaire (Ar) *</label>
+                  <input type="number" required value={formData.prix_unitaire} onChange={e => setFormData({ ...formData, prix_unitaire: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unité de mesure *</label>
-                <select required value={formData.unite_mesure} onChange={e => setFormData({ ...formData, unite_mesure: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Unité de mesure *</label>
+                <select required value={formData.unite_mesure} onChange={e => setFormData({ ...formData, unite_mesure: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none">
                   <option value="">Sélectionner...</option>
                   {unitesMesure.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none min-h-[100px]" />
               </div>
 
               <div className="pt-4 p-4 bg-gray-50 rounded-lg">
@@ -384,9 +384,9 @@ const TarifsPage = () => {
                 <label htmlFor="actif" className="ml-2 text-sm text-gray-700">Service actif</label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Annuler</button>
-                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
+                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
               </div>
             </form>
           </div>

@@ -83,7 +83,7 @@ const DepensesPage = () => {
         e.preventDefault();
         setIsSubmitting(true);
         setErrors({});
-        
+
         const payload = {
             transaction: {
                 description: form.description,
@@ -145,7 +145,7 @@ const DepensesPage = () => {
                     </button>
                 </div>
             )}
-            
+
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">Gestion des Dépenses</h1>
                 <p className="text-gray-600">Suivez toutes les sorties d'argent.</p>
@@ -153,7 +153,7 @@ const DepensesPage = () => {
 
             <div className="mb-6 flex justify-between items-center">
                 <div className="relative flex-1 max-w-md">
-                    <input type="text" placeholder="Rechercher par description ou fournisseur..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"/>
+                    <input type="text" placeholder="Rechercher par description ou fournisseur..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
                     <FaSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
                 <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><FaPlus /> Nouvelle Dépense</button>
@@ -205,8 +205,8 @@ const DepensesPage = () => {
             </div>
 
             {showModal && (
-                <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                         <div className="flex items-center justify-between p-6 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-900">{editingDepense ? 'Modifier la Dépense' : 'Nouvelle Dépense'}</h3>
                             <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>
@@ -215,17 +215,17 @@ const DepensesPage = () => {
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                                <input type="text" required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description *</label>
+                                <input type="text" required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Montant (Ar) *</label>
-                                    <input type="number" required min="0" value={form.montant} onChange={e => setForm({...form, montant: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Montant (Ar) *</label>
+                                    <input type="number" required min="0" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
-                                    <select required value={form.categorie_depense} onChange={e => setForm({...form, categorie_depense: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catégorie *</label>
+                                    <select required value={form.categorie_depense} onChange={e => setForm({ ...form, categorie_depense: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none">
                                         {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                                     </select>
                                 </div>
@@ -233,16 +233,16 @@ const DepensesPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
-                                    <input type="text" value={form.fournisseur} onChange={e => setForm({...form, fournisseur: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                    <input type="text" value={form.fournisseur} onChange={e => setForm({ ...form, fournisseur: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">N° Facture</label>
-                                    <input type="text" value={form.numero_facture} onChange={e => setForm({...form, numero_facture: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                    <input type="text" value={form.numero_facture} onChange={e => setForm({ ...form, numero_facture: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-100 rounded-lg">Annuler</button>
-                                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
+                            <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6 text-right">
+                                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
+                                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
                             </div>
                         </form>
                     </div>

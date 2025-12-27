@@ -90,9 +90,8 @@ const ProduitsPage = () => {
   return (
     <div className="p-6 relative">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-        } text-white`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up flex items-center gap-2 ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+          } text-white`}>
           <NotificationIcon type={notification.type} />
           <span>{notification.message}</span>
         </div>
@@ -186,7 +185,7 @@ const ProduitsPage = () => {
             {filtered.length === 0 && (
               <div className="p-8 text-center text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 <p>Aucun produit trouvé</p>
               </div>
@@ -196,8 +195,8 @@ const ProduitsPage = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">{editing ? 'Modifier le produit' : 'Nouveau produit'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>
@@ -215,13 +214,13 @@ const ProduitsPage = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Désignation *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Désignation *</label>
                 <input
                   type="text"
                   required
                   value={form.designation}
                   onChange={(e) => setForm({ ...form, designation: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.designation ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                  className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.designation ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                   placeholder="Ex: Rame de papier A4"
                   disabled={isSubmitting}
                 />
@@ -265,56 +264,56 @@ const ProduitsPage = () => {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="text-md font-semibold text-gray-800 mb-2">Gestion des Unités</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Unité de Stock (de base) *</label>
-                        <select
-                            required
-                            value={form.unite_mesure}
-                            onChange={(e) => setForm({ ...form, unite_mesure: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.unite_mesure ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                            disabled={isSubmitting}
-                        >
-                            <option value="">Sélectionner...</option>
-                            {dependencies.unites?.map(unite => (
-                            <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">Ex: Feuille, Pièce, Bouteille</p>
-                        {errors.unite_mesure && <span className="text-red-600 text-xs mt-1 block">{errors.unite_mesure}</span>}
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Unité d'Achat</label>
-                        <select
-                            value={form.unite_achat}
-                            onChange={(e) => setForm({ ...form, unite_achat: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.unite_achat ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                            disabled={isSubmitting}
-                        >
-                            <option value="">(Aucune)</option>
-                            {dependencies.unites?.map(unite => (
-                            <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">Ex: Rame, Paquet, Carton</p>
-                        {errors.unite_achat && <span className="text-red-600 text-xs mt-1 block">{errors.unite_achat}</span>}
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unité de Stock (de base) *</label>
+                    <select
+                      required
+                      value={form.unite_mesure}
+                      onChange={(e) => setForm({ ...form, unite_mesure: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.unite_mesure ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Sélectionner...</option>
+                      {dependencies.unites?.map(unite => (
+                        <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Ex: Feuille, Pièce, Bouteille</p>
+                    {errors.unite_mesure && <span className="text-red-600 text-xs mt-1 block">{errors.unite_mesure}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unité d'Achat</label>
+                    <select
+                      value={form.unite_achat}
+                      onChange={(e) => setForm({ ...form, unite_achat: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.unite_achat ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">(Aucune)</option>
+                      {dependencies.unites?.map(unite => (
+                        <option key={unite.id} value={unite.id}>{unite.nom} ({unite.symbole})</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Ex: Rame, Paquet, Carton</p>
+                    {errors.unite_achat && <span className="text-red-600 text-xs mt-1 block">{errors.unite_achat}</span>}
+                  </div>
                 </div>
                 {form.unite_achat && (
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Facteur de Conversion *</label>
-                        <input
-                            type="number"
-                            min="1"
-                            required
-                            value={form.quantite_par_unite_achat}
-                            onChange={(e) => setForm({ ...form, quantite_par_unite_achat: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.quantite_par_unite_achat ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                            placeholder="Ex: 500"
-                            disabled={isSubmitting}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Combien d'unités de stock dans 1 unité d'achat ? (Ex: 500 feuilles dans 1 rame)</p>
-                        {errors.quantite_par_unite_achat && <span className="text-red-600 text-xs mt-1 block">{errors.quantite_par_unite_achat}</span>}
-                    </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Facteur de Conversion *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={form.quantite_par_unite_achat}
+                      onChange={(e) => setForm({ ...form, quantite_par_unite_achat: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.quantite_par_unite_achat ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="Ex: 500"
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Combien d'unités de stock dans 1 unité d'achat ? (Ex: 500 feuilles dans 1 rame)</p>
+                    {errors.quantite_par_unite_achat && <span className="text-red-600 text-xs mt-1 block">{errors.quantite_par_unite_achat}</span>}
+                  </div>
                 )}
               </div>
 
@@ -331,34 +330,21 @@ const ProduitsPage = () => {
               </div>
 
               <div className="flex items-center">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={form.actif}
-                      onChange={(e) => setForm({ ...form, actif: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      disabled={isSubmitting}
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Produit actif</span>
-                  </label>
-                </div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.actif}
+                    onChange={(e) => setForm({ ...form, actif: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Produit actif</span>
+                </label>
+              </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className={`flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Sauvegarde...' : (editing ? 'Modifier' : 'Créer')}
-                </button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
+                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
               </div>
             </form>
           </div>

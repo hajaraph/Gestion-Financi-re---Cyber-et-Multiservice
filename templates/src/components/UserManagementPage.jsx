@@ -371,7 +371,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
             {filteredProfils.length === 0 && (
               <div className="p-8 text-center text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354V4a1 1 0 00-1-1H9a1 1 0 00-1 1v.354M5 10V7a1 1 0 011-1h12a1 1 0 011 1v3m-2 7v.646C17 20.211 16.5 21 15.5 21H8.5C7.5 21 7 20.211 7 19.646V17m-2 2a2 2 0 01-2-2v-4a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2H5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354V4a1 1 0 00-1-1H9a1 1 0 00-1 1v.354M5 10V7a1 1 0 011-1h12a1 1 0 011 1v3m-2 7v.646C17 20.211 16.5 21 15.5 21H8.5C7.5 21 7 20.211 7 19.646V17m-2 2a2 2 0 01-2-2v-4a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2H5z" />
                 </svg>
                 <p>Aucun profil utilisateur trouvé</p>
               </div>
@@ -381,8 +381,8 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">{editing ? 'Modifier le profil utilisateur' : 'Nouvel utilisateur'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>
@@ -401,26 +401,26 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom d'utilisateur *</label>
                   <input
                     type="text"
                     required
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.username ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.username ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="Nom d'utilisateur"
-                    disabled={isSubmitting || editing} // Ne pas modifier le username après création
+                    disabled={isSubmitting || editing}
                   />
                   {errors.username && <span className="text-red-600 text-xs mt-1 block">{errors.username}</span>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
                   <input
                     type="email"
                     required
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="email@example.com"
                     disabled={isSubmitting}
                   />
@@ -596,22 +596,9 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className={`flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Sauvegarde...' : (editing ? 'Modifier' : 'Créer')}
-                </button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
+                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
               </div>
             </form>
           </div>

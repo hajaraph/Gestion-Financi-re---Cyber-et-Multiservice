@@ -132,11 +132,11 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-                <h3 className="text-lg font-semibold text-gray-900">Nouvelle Vente Groupée</h3>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <h3 className="text-xl font-bold text-gray-900">Nouvelle Vente Groupée</h3>
+                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors" disabled={isSubmitting}>
+                    <FaTimes size={24} />
                 </button>
             </div>
 
@@ -144,12 +144,12 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 {errors.general && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center">{errors.general}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nom du client</label>
-                        <input type="text" value={clientNom} onChange={(e) => setClientNom(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom du client</label>
+                        <input type="text" value={clientNom} onChange={(e) => setClientNom(e.target.value)} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Commentaire</label>
-                        <input type="text" value={commentaire} onChange={(e) => setCommentaire(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Commentaire</label>
+                        <input type="text" value={commentaire} onChange={(e) => setCommentaire(e.target.value)} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                     </div>
                 </div>
 
@@ -244,11 +244,20 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </div>
             </form >
 
-            <div className="p-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white z-10">
-                <div className="text-2xl font-bold">Total: {total.toLocaleString('fr-FR')} Ar</div>
-                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
-                    <FaSave /> {isSubmitting ? 'Enregistrement...' : 'Valider la Vente'}
-                </button>
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 -mx-6 -mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="text-2xl font-bold text-blue-600">
+                        Total: {total.toLocaleString('fr-FR')} Ar
+                    </div>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmitting}>
+                            Annuler
+                        </button>
+                        <button type="submit" className="flex-1 md:flex-none px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50" disabled={isSubmitting}>
+                            <FaSave /> {isSubmitting ? 'Enregistrement...' : 'Enregistrer la Vente'}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div >
     );
@@ -446,7 +455,7 @@ const Multiservice = () => {
             </div>
 
             {showModal && (
-                <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
                     <FormulaireVente onClose={() => setShowModal(false)} onSave={handleSave} tarifs={tarifs} isSubmitting={isSubmitting} />
                 </div>
             )}

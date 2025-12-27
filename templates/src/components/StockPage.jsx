@@ -12,7 +12,7 @@ const StockPage = () => {
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
   const { refreshAlerts } = useStockAlert();
-  
+
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [isSubmittingEntry, setIsSubmittingEntry] = useState(false);
   const [entryErrors, setEntryErrors] = useState({});
@@ -63,8 +63,8 @@ const StockPage = () => {
       if (result.success) {
         setStocks(result.data);
       } else {
-        const errorMessage = typeof result.error === 'object' && result.error.detail 
-          ? result.error.detail 
+        const errorMessage = typeof result.error === 'object' && result.error.detail
+          ? result.error.detail
           : result.error || 'Erreur de chargement';
         notify(errorMessage, 'error');
       }
@@ -206,8 +206,7 @@ const StockPage = () => {
         <div className="text-sm text-gray-500">{stock.code_produit}</div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-center">
-        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            stock.etat === 'EN_STOCK' ? 'bg-green-100 text-green-800' : 
+        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${stock.etat === 'EN_STOCK' ? 'bg-green-100 text-green-800' :
             stock.etat === 'LIMITE' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
           }`}>
           {stock.etat?.replace('_', ' ')}
@@ -224,18 +223,18 @@ const StockPage = () => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex justify-end gap-2">
-            <button onClick={() => openHistoryModal(stock)} className="text-gray-600 hover:text-gray-900 flex items-center gap-1 cursor-pointer" title="Historique du stock">
-                <FaHistory />
-            </button>
-            <button onClick={() => openEntryModal(stock)} className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer" title="Ajouter au stock">
-                <FaPlus />
-            </button>
-            <button onClick={() => openAdjustmentModal(stock)} className="text-purple-600 hover:text-purple-900 flex items-center gap-1 cursor-pointer" title="Ajuster le stock">
-                <FaBalanceScale />
-            </button>
-            <button onClick={() => openRevaluationModal(stock)} className="text-green-600 hover:text-green-900 flex items-center gap-1 cursor-pointer" title="Réévaluer le prix moyen">
-                <FaDollarSign />
-            </button>
+          <button onClick={() => openHistoryModal(stock)} className="text-gray-600 hover:text-gray-900 flex items-center gap-1 cursor-pointer" title="Historique du stock">
+            <FaHistory />
+          </button>
+          <button onClick={() => openEntryModal(stock)} className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer" title="Ajouter au stock">
+            <FaPlus />
+          </button>
+          <button onClick={() => openAdjustmentModal(stock)} className="text-purple-600 hover:text-purple-900 flex items-center gap-1 cursor-pointer" title="Ajuster le stock">
+            <FaBalanceScale />
+          </button>
+          <button onClick={() => openRevaluationModal(stock)} className="text-green-600 hover:text-green-900 flex items-center gap-1 cursor-pointer" title="Réévaluer le prix moyen">
+            <FaDollarSign />
+          </button>
         </div>
       </td>
     </tr>
@@ -295,8 +294,8 @@ const StockPage = () => {
 
       {/* History Modal */}
       {showHistoryModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Historique du stock: {currentStock?.nom_produit}</h3>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-600"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -340,8 +339,8 @@ const StockPage = () => {
 
       {/* Other modals (Entry, Adjustment, Revaluation) remain unchanged */}
       {showEntryModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Ajouter au Stock: {currentStock?.nom_produit}</h3>
               <button onClick={() => setShowEntryModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingEntry}>
@@ -353,17 +352,17 @@ const StockPage = () => {
             <form onSubmit={handleRecordEntry} className="p-6 space-y-4">
               {entryErrors.general && <p className="text-red-500 text-sm mt-2">{entryErrors.general}</p>}
               <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  Vous achetez en <span className="font-bold">{currentStock?.unite_achat_symbole || 'unité'}</span>. Le stock sera mis à jour en <span className="font-bold">{currentStock?.unite_mesure_produit || 'unité'}</span>.
+                Vous achetez en <span className="font-bold">{currentStock?.unite_achat_symbole || 'unité'}</span>. Le stock sera mis à jour en <span className="font-bold">{currentStock?.unite_mesure_produit || 'unité'}</span>.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Quantité Achetée ({currentStock?.unite_achat_symbole})</label>
-                  <input type="number" required value={entryForm.quantite_achat} onChange={(e) => setEntryForm({ ...entryForm, quantite_achat: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Quantité Achetée ({currentStock?.unite_achat_symbole})</label>
+                  <input type="number" required value={entryForm.quantite_achat} onChange={(e) => setEntryForm({ ...entryForm, quantite_achat: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                   {entryErrors.quantite_achat && <p className="text-red-500 text-xs mt-1">{entryErrors.quantite_achat}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Prix Total d'Achat (Ar)</label>
-                  <input type="number" required value={entryForm.prix_total_achat} onChange={(e) => setEntryForm({ ...entryForm, prix_total_achat: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prix Total (Ar)</label>
+                  <input type="number" required value={entryForm.prix_total_achat} onChange={(e) => setEntryForm({ ...entryForm, prix_total_achat: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                   {entryErrors.prix_total_achat && <p className="text-red-500 text-xs mt-1">{entryErrors.prix_total_achat}</p>}
                 </div>
               </div>
@@ -375,9 +374,9 @@ const StockPage = () => {
                 <label className="block text-sm font-medium text-gray-700">N° Facture (Optionnel)</label>
                 <input type="text" value={entryForm.numero_facture} onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowEntryModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingEntry}>Annuler</button>
-                <button type="submit" disabled={isSubmittingEntry} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}</button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowEntryModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingEntry}>Annuler</button>
+                <button type="submit" disabled={isSubmittingEntry} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}</button>
               </div>
             </form>
           </div>
@@ -385,8 +384,8 @@ const StockPage = () => {
       )}
 
       {showAdjustmentModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Ajuster Stock: {currentStock?.nom_produit}</h3>
               <button onClick={() => setShowAdjustmentModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingAdjustment}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -409,9 +408,9 @@ const StockPage = () => {
                 <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
                 <textarea value={adjustmentForm.commentaire} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAdjustmentModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingAdjustment}>Annuler</button>
-                <button type="submit" disabled={isSubmittingAdjustment} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50">{isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}</button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowAdjustmentModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingAdjustment}>Annuler</button>
+                <button type="submit" disabled={isSubmittingAdjustment} className="px-8 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}</button>
               </div>
             </form>
           </div>
@@ -437,9 +436,9 @@ const StockPage = () => {
                 <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
                 <textarea value={revaluationForm.commentaire} onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowRevaluationModal(false)} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmittingRevaluation}>Annuler</button>
-                <button type="submit" disabled={isSubmittingRevaluation} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
+                <button type="button" onClick={() => setShowRevaluationModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingRevaluation}>Annuler</button>
+                <button type="submit" disabled={isSubmittingRevaluation} className="px-8 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
               </div>
             </form>
           </div>

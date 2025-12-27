@@ -655,11 +655,12 @@ class ProduitSerializer(serializers.ModelSerializer):
     categorie_nom = serializers.CharField(source='categorie.nom', read_only=True)
     unite_mesure_nom = serializers.CharField(source='unite_mesure.nom', read_only=True)
     unite_mesure_symbole = serializers.CharField(source='unite_mesure.symbole', read_only=True)
-    # unite_achat_nom = serializers.CharField(source='unite_achat.nom', read_only=True) # Removed as unite_achat is not in the model
+    unite_achat_nom = serializers.CharField(source='unite_achat.nom', read_only=True, allow_null=True)
+    unite_achat_symbole = serializers.CharField(source='unite_achat.symbole', read_only=True, allow_null=True)
 
     categorie = serializers.PrimaryKeyRelatedField(queryset=CategorieProduit.objects.all(), allow_null=True)
     unite_mesure = serializers.PrimaryKeyRelatedField(queryset=UniteMesure.objects.all())
-    # unite_achat = serializers.PrimaryKeyRelatedField(queryset=UniteMesure.objects.all(), allow_null=True) # Removed as unite_achat is not in the model
+    unite_achat = serializers.PrimaryKeyRelatedField(queryset=UniteMesure.objects.all(), allow_null=True, required=False)
 
     # Ajout du sérialiseur de stock
     stock = serializers.SerializerMethodField()
@@ -670,6 +671,8 @@ class ProduitSerializer(serializers.ModelSerializer):
             'id', 'designation', 'reference', 'description', 'actif',
             'categorie', 'categorie_nom', 'prix_vente', 'marge_minimale',
             'unite_mesure', 'unite_mesure_nom', 'unite_mesure_symbole',
+            'unite_achat', 'unite_achat_nom', 'unite_achat_symbole',
+            'quantite_par_unite_achat',
             'stock',  # Inclure stock ici
             'date_creation', 'date_modification',
         ]

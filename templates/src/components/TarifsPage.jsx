@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { tarifAPI, produitAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
+import PaliersRemiseModal from './PaliersRemiseModal';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaPercentage } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const TarifsPage = () => {
@@ -19,6 +20,8 @@ const TarifsPage = () => {
   const [notification, setNotification] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tarifToDelete, setTarifToDelete] = useState(null);
+  const [showPaliersModal, setShowPaliersModal] = useState(false);
+  const [selectedTarif, setSelectedTarif] = useState(null);
   const [formData, setFormData] = useState({
     nom_service: '',
     categorie: '',
@@ -103,7 +106,7 @@ const TarifsPage = () => {
     });
     setShowModal(true);
   };
-  
+
   const resetForm = () => {
     setFormData({
       nom_service: '',
@@ -120,22 +123,22 @@ const TarifsPage = () => {
   const handleConsommationChange = (index, field, value) => {
     const newConsommations = [...formData.consommations_write];
     if (field === 'produit_id') {
-        newConsommations[index][field] = parseInt(value, 10);
+      newConsommations[index][field] = parseInt(value, 10);
     } else {
-        newConsommations[index][field] = value;
+      newConsommations[index][field] = value;
     }
     setFormData({ ...formData, consommations_write: newConsommations });
   };
 
   const addConsommation = () => {
     if (produits.length > 0) {
-        setFormData({
-            ...formData,
-            consommations_write: [
-                ...formData.consommations_write,
-                { produit_id: produits[0].id, quantite: 1 }
-            ]
-        });
+      setFormData({
+        ...formData,
+        consommations_write: [
+          ...formData.consommations_write,
+          { produit_id: produits[0].id, quantite: 1 }
+        ]
+      });
     }
   };
 
@@ -160,10 +163,10 @@ const TarifsPage = () => {
       } else {
         // Gérer spécifiquement le cas du ProtectedError (code 409)
         if (result.statusCode === 409) {
-            const serviceName = tarifToDelete.nom_service;
-            showNotification(`"${serviceName}" est déjà consommé par des clients et ne peut pas être supprimé.`, 'warning');
+          const serviceName = tarifToDelete.nom_service;
+          showNotification(`"${serviceName}" est déjà consommé par des clients et ne peut pas être supprimé.`, 'warning');
         } else {
-            showNotification(result.error?.detail || 'Erreur lors de la suppression.', 'error');
+          showNotification(result.error?.detail || 'Erreur lors de la suppression.', 'error');
         }
       }
     } catch (error) {
@@ -180,7 +183,12 @@ const TarifsPage = () => {
     setTarifToDelete(null);
   };
 
-  const filteredTarifs = tarifs.filter(tarif => 
+  const handleManageRemises = (tarif) => {
+    setSelectedTarif(tarif);
+    setShowPaliersModal(true);
+  };
+
+  const filteredTarifs = tarifs.filter(tarif =>
     tarif.nom_service.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (selectedCategory === '' || tarif.categorie === selectedCategory)
   );
@@ -188,14 +196,13 @@ const TarifsPage = () => {
   return (
     <div className="p-6">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-          notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-        } text-white`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+          } text-white`}>
           <NotificationIcon type={notification.type} />
           <span>{notification.message}</span>
         </div>
       )}
-      
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Tarifs des Services</h1>
         <p className="text-gray-600">Gérez les prix et les produits consommés par vos services.</p>
@@ -233,6 +240,13 @@ const TarifsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">{tarif.prix_unitaire} Ar</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleManageRemises(tarif)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="Gérer les remises"
+                        >
+                          <FaPercentage />
+                        </button>
                         <button onClick={() => handleEdit(tarif)} className="text-blue-600 hover:text-blue-900" title="Modifier le tarif">
                           <FaEdit />
                         </button>
@@ -248,7 +262,7 @@ const TarifsPage = () => {
             {filteredTarifs.length === 0 && (
               <div className="p-8 text-center text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 <p>Aucun tarif trouvé</p>
               </div>
@@ -270,33 +284,33 @@ const TarifsPage = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom du service *</label>
-                <input type="text" required value={formData.nom_service} onChange={e => setFormData({...formData, nom_service: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <input type="text" required value={formData.nom_service} onChange={e => setFormData({ ...formData, nom_service: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
-                  <select required value={formData.categorie} onChange={e => setFormData({...formData, categorie: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <select required value={formData.categorie} onChange={e => setFormData({ ...formData, categorie: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Sélectionner...</option>
                     {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prix unitaire (Ar) *</label>
-                  <input type="number" required value={formData.prix_unitaire} onChange={e => setFormData({...formData, prix_unitaire: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <input type="number" required value={formData.prix_unitaire} onChange={e => setFormData({ ...formData, prix_unitaire: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Unité de mesure *</label>
-                <select required value={formData.unite_mesure} onChange={e => setFormData({...formData, unite_mesure: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select required value={formData.unite_mesure} onChange={e => setFormData({ ...formData, unite_mesure: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                   <option value="">Sélectionner...</option>
                   {unitesMesure.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
-              
+
               <div className="pt-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2 text-gray-800">Produits Consommés (Recette)</h4>
                 <div className="space-y-2">
@@ -314,10 +328,10 @@ const TarifsPage = () => {
               </div>
 
               <div className="flex items-center">
-                <input type="checkbox" id="actif" checked={formData.actif} onChange={e => setFormData({...formData, actif: e.target.checked})} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" id="actif" checked={formData.actif} onChange={e => setFormData({ ...formData, actif: e.target.checked })} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <label htmlFor="actif" className="ml-2 text-sm text-gray-700">Service actif</label>
               </div>
-              
+
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Annuler</button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
@@ -337,6 +351,13 @@ const TarifsPage = () => {
         confirmText="Supprimer"
         cancelText="Annuler"
         type="danger"
+      />
+
+      {/* Modal de gestion des paliers de remise */}
+      <PaliersRemiseModal
+        isOpen={showPaliersModal}
+        onClose={() => setShowPaliersModal(false)}
+        tarif={selectedTarif}
       />
     </div>
   );

@@ -112,6 +112,15 @@ export const tarifAPI = {
   delete: async (id) => handleApiResponse(() => apiClient.delete(`/api/tarifs/${id}/`)),
 };
 
+// Services pour les paliers de remise
+export const palierRemiseAPI = {
+  getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/paliers-remise/', { params })),
+  getByTarif: async (tarifId) => handleApiResponse(() => apiClient.get(`/api/paliers-remise/?tarif_service=${tarifId}`)),
+  create: async (palierData) => handleApiResponse(() => apiClient.post('/api/paliers-remise/', palierData)),
+  update: async (id, palierData) => handleApiResponse(() => apiClient.put(`/api/paliers-remise/${id}/`, palierData)),
+  delete: async (id) => handleApiResponse(() => apiClient.delete(`/api/paliers-remise/${id}/`)),
+};
+
 // Services pour les services personnalisés
 export const servicePersonnaliseAPI = {
   getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/services-personnalises/', { params })),
@@ -163,7 +172,7 @@ export const parametresEntrepriseAPI = {
 };
 
 export const dashboardAPI = {
-    getStats: async (params = {}) => handleApiResponse(() => apiClient.get('/api/dashboard-stats/', { params })),
+  getStats: async (params = {}) => handleApiResponse(() => apiClient.get('/api/dashboard-stats/', { params })),
 };
 
 // Export de l'instance Axios pour des cas spéciaux

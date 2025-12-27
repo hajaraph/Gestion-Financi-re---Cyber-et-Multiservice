@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier le fichier requirements.txt
@@ -42,6 +43,7 @@ COPY . /app/
 
 # Copier le script d'entrypoint
 COPY entrypoint.sh /app/
+RUN dos2unix /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Collecter les fichiers statiques
@@ -50,8 +52,8 @@ RUN python manage.py collectstatic --noinput
 # Exposer le port sur lequel l'application va tourner
 EXPOSE 8000
 
-# Utiliser le script d'entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Utiliser le script d'entrypoint avec sh explicitement
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
 
 # Commande pour lancer l'application avec Gunicorn
 CMD ["gunicorn", "Finance.wsgi:application", "--bind", "0.0.0.0:8000"]

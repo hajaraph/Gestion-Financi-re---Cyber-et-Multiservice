@@ -239,33 +239,32 @@ const TarifsPage = () => {
           </svg>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex-1 relative group">
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Rechercher un service (nom)..."
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           <button
-            onClick={handleImportTarifs}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            title="Importer la liste des tarifs par défaut"
+            onClick={() => { setEditingTarif(null); setShowModal(true); }}
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
           >
-            <FaDownload className="w-4 h-4" />
-            Importer Standards
-          </button>
-          <button
-            onClick={() => { resetForm(); setShowModal(true); }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <FaPlus className="w-4 h-4" />
-            Nouveau tarif
+            <FaPlus /> Nouveau Tarif
           </button>
         </div>
-      </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des tarifs...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-500 font-medium">Chargement des tarifs...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

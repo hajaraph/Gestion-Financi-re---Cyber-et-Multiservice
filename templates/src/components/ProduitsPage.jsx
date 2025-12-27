@@ -116,27 +116,32 @@ const ProduitsPage = () => {
           </svg>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex-1 relative group">
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Rechercher un produit (désignation ou référence)..."
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           <button
-            onClick={openCreate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            onClick={() => { setEditing(false); resetForm(); setShowModal(true); }}
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nouveau produit
+            <FaPlus /> Nouveau Produit
           </button>
         </div>
-      </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des produits...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-500 font-medium">Chargement des produits...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -229,12 +234,12 @@ const ProduitsPage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catégorie *</label>
                   <select
                     required
                     value={form.categorie}
                     onChange={(e) => setForm({ ...form, categorie: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.categorie ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.categorie ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     disabled={isSubmitting}
                   >
                     <option value="">Sélectionner...</option>
@@ -245,7 +250,7 @@ const ProduitsPage = () => {
                   {errors.categorie && <span className="text-red-600 text-xs mt-1 block">{errors.categorie}</span>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix de vente (Ar) *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prix de vente (Ar) *</label>
                   <input
                     type="number"
                     min="0"
@@ -253,7 +258,7 @@ const ProduitsPage = () => {
                     required
                     value={form.prix_vente}
                     onChange={(e) => setForm({ ...form, prix_vente: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.prix_vente ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.prix_vente ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="0"
                     disabled={isSubmitting}
                   />
@@ -318,13 +323,13 @@ const ProduitsPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
                 <textarea
                   rows={2}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Description optionnelle"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none h-24 resize-none"
+                  placeholder="Informations complémentaires sur le produit..."
                   disabled={isSubmitting}
                 />
               </div>

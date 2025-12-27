@@ -310,7 +310,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
           )}
           <button
             onClick={openCreate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -320,7 +320,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -433,32 +433,34 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                     required={!editing}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="********"
                     disabled={isSubmitting}
                   />
                   {errors.password && <span className="text-red-600 text-xs mt-1 block">{errors.password}</span>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prénom *</label>
                   <input
                     type="text"
+                    required
                     value={form.first_name}
                     onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.first_name ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                     placeholder="Prénom"
                     disabled={isSubmitting}
                   />
                   {errors.first_name && <span className="text-red-600 text-xs mt-1 block">{errors.first_name}</span>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom de famille</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom *</label>
                   <input
                     type="text"
+                    required
                     value={form.last_name}
                     onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.last_name ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="Nom de famille"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                    placeholder="Nom"
                     disabled={isSubmitting}
                   />
                   {errors.last_name && <span className="text-red-600 text-xs mt-1 block">{errors.last_name}</span>}
@@ -469,7 +471,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                     type="text"
                     value={form.telephone}
                     onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.telephone ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.telephone ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="Téléphone"
                     disabled={isSubmitting}
                   />
@@ -481,21 +483,22 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                     type="text"
                     value={form.poste}
                     onChange={(e) => setForm({ ...form, poste: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.poste ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.poste ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     placeholder="Poste"
                     disabled={isSubmitting}
                   />
                   {errors.poste && <span className="text-red-600 text-xs mt-1 block">{errors.poste}</span>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rôle *</label>
                   <select
-                    value={form.role}
+                    required
+                    value={form.role || ''}
                     onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.role ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.role ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     disabled={isSubmitting}
                   >
-                    <option value="">(Aucun rôle)</option>
+                    <option value="">Sélectionner un rôle</option>
                     {roles.map(r => (
                       <option key={r.id} value={r.id}>{r.nom}</option>
                     ))}

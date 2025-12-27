@@ -202,7 +202,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                     </div>
                                     <div className="md:col-span-3">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Sous-total</label>
-                                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-bold text-gray-800 text-right">
+                                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 text-right">
                                             {(ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
                                         </div>
                                     </div>
@@ -374,15 +374,15 @@ const Multiservice = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-lg shadow">
+                <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Total Vendu (Aujourd'hui)</div>
                     <div className="text-2xl font-bold text-green-600">{dashboardStats.totalVendu.toLocaleString('fr-FR')} Ar</div>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow">
+                <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Nombre de Ventes (Aujourd'hui)</div>
                     <div className="text-2xl font-bold">{dashboardStats.nombreVentes}</div>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow">
+                <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Top Service (Aujourd'hui)</div>
                     <div className="text-2xl font-bold truncate">{dashboardStats.serviceTop}</div>
                 </div>
@@ -395,16 +395,16 @@ const Multiservice = () => {
                         placeholder="Rechercher par client ou service..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <FaSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
-                <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2">
                     <FaPlus /> Nouvelle Vente
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-2xl shadow overflow-hidden">
                 {loading ? (
                     <div className="p-8 text-center">
                         <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>

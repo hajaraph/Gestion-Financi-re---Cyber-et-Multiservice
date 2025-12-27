@@ -207,7 +207,7 @@ const StockPage = () => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-center">
         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${stock.etat === 'EN_STOCK' ? 'bg-green-100 text-green-800' :
-            stock.etat === 'LIMITE' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+          stock.etat === 'LIMITE' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
           }`}>
           {stock.etat?.replace('_', ' ')}
         </span>
@@ -261,20 +261,50 @@ const StockPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">Valeur d'achat</div><div className="text-2xl font-bold">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div></div>
-        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">Valeur de vente</div><div className="text-2xl font-bold text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div></div>
-        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">En rupture</div><div className="text-2xl font-bold text-red-600">{stats.ruptures}</div></div>
-        <div className="bg-white p-4 rounded-lg shadow"><div className="text-gray-500 text-sm">À réapprovisionner</div><div className="text-2xl font-bold text-yellow-600">{stats.reappro}</div></div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="text-gray-500 text-sm font-medium mb-1">Valeur d'achat</div>
+          <div className="text-2xl font-bold text-gray-900">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="text-gray-500 text-sm font-medium mb-1">Valeur de vente</div>
+          <div className="text-2xl font-bold text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="text-gray-500 text-sm font-medium mb-1">En rupture</div>
+          <div className="text-2xl font-bold text-red-600">{stats.ruptures}</div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="text-gray-500 text-sm font-medium mb-1">À réapprovisionner</div>
+          <div className="text-2xl font-bold text-yellow-600">{stats.reappro}</div>
+        </div>
       </div>
 
-      <div className="mb-6 flex justify-between items-center">
-        <input type="text" placeholder="Rechercher un produit..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-md pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
+      <div className="mb-8 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative group">
+          <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+          <input
+            type="text"
+            placeholder="Rechercher un produit en stock..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+          />
+        </div>
+        <button
+          onClick={fetchStock}
+          className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
+        >
+          Actualiser
+        </button>
       </div>
 
       {loading ? (
-        <div className="p-8 text-center"><div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div><p>Chargement des stocks...</p></div>
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl shadow-md border border-gray-100">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">Chargement du stock...</p>
+        </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -367,12 +397,12 @@ const StockPage = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Fournisseur (Optionnel)</label>
-                <input type="text" value={entryForm.fournisseur} onChange={(e) => setEntryForm({ ...entryForm, fournisseur: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Fournisseur (Optionnel)</label>
+                <input type="text" value={entryForm.fournisseur} onChange={(e) => setEntryForm({ ...entryForm, fournisseur: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">N° Facture (Optionnel)</label>
-                <input type="text" value={entryForm.numero_facture} onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">N° Facture (Optionnel)</label>
+                <input type="text" value={entryForm.numero_facture} onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
                 <button type="button" onClick={() => setShowEntryModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingEntry}>Annuler</button>
@@ -393,20 +423,20 @@ const StockPage = () => {
             <form onSubmit={handleAdjustment} className="p-6 space-y-4">
               {adjustmentErrors.general && <p className="text-red-500 text-sm mt-2">{adjustmentErrors.general}</p>}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Type d'ajustement</label>
-                <select value={adjustmentForm.type_ajustement} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, type_ajustement: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Type d'ajustement</label>
+                <select value={adjustmentForm.type_ajustement} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, type_ajustement: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none">
                   <option value="AUGMENTATION">Augmentation (+)</option>
                   <option value="DIMINUTION">Diminution (-)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Quantité ({currentStock?.unite_mesure_produit})</label>
-                <input type="number" required min="0" value={adjustmentForm.quantite} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, quantite: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Quantité ({currentStock?.unite_mesure_produit})</label>
+                <input type="number" required min="0" value={adjustmentForm.quantite} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, quantite: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                 {adjustmentErrors.quantite && <p className="text-red-500 text-xs mt-1">{adjustmentErrors.quantite}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
-                <textarea value={adjustmentForm.commentaire} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Commentaire (Optionnel)</label>
+                <textarea value={adjustmentForm.commentaire} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none h-24 resize-none" />
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
                 <button type="button" onClick={() => setShowAdjustmentModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingAdjustment}>Annuler</button>
@@ -418,27 +448,27 @@ const StockPage = () => {
       )}
 
       {showRevaluationModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">Réévaluer Prix Moyen: {currentStock?.nom_produit}</h3>
               <button onClick={() => setShowRevaluationModal(false)} className="text-gray-400 hover:text-gray-600" disabled={isSubmittingRevaluation}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <form onSubmit={handleRevaluation} className="p-6 space-y-4">
               {revaluationErrors.general && <p className="text-red-500 text-sm mt-2">{revaluationErrors.general}</p>}
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">Prix d'achat moyen actuel: <span className="font-bold">{currentStock?.prix_achat_moyen} Ar</span></p>
+              <p className="text-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">Prix d'achat moyen actuel: <span className="font-bold text-blue-600">{currentStock?.prix_achat_moyen} Ar</span></p>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nouveau Prix d'Achat Moyen (Ar)</label>
-                <input type="number" required min="0" step="0.01" value={revaluationForm.nouveau_prix_achat_moyen} onChange={(e) => setRevaluationForm({ ...revaluationForm, nouveau_prix_achat_moyen: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nouveau Prix d'Achat Moyen (Ar)</label>
+                <input type="number" required min="0" step="0.01" value={revaluationForm.nouveau_prix_achat_moyen} onChange={(e) => setRevaluationForm({ ...revaluationForm, nouveau_prix_achat_moyen: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                 {revaluationErrors.nouveau_prix_achat_moyen && <p className="text-red-500 text-xs mt-1">{revaluationErrors.nouveau_prix_achat_moyen}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Commentaire (Optionnel)</label>
-                <textarea value={revaluationForm.commentaire} onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Commentaire (Optionnel)</label>
+                <textarea value={revaluationForm.commentaire} onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none h-24 resize-none" />
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
                 <button type="button" onClick={() => setShowRevaluationModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingRevaluation}>Annuler</button>
-                <button type="submit" disabled={isSubmittingRevaluation} className="px-8 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
+                <button type="submit" disabled={isSubmittingRevaluation} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
               </div>
             </form>
           </div>

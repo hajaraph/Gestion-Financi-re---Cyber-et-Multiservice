@@ -151,58 +151,67 @@ const DepensesPage = () => {
                 <p className="text-gray-600">Suivez toutes les sorties d'argent.</p>
             </div>
 
-            <div className="mb-6 flex justify-between items-center">
-                <div className="relative flex-1 max-w-md">
-                    <input type="text" placeholder="Rechercher par description ou fournisseur..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
-                    <FaSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <div className="flex-1 relative group">
+                    <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Rechercher une dépense (motif)..."
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
-                <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><FaPlus /> Nouvelle Dépense</button>
+                <button
+                    onClick={() => { setEditingDepense(null); resetForm(); setShowModal(true); }}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
+                >
+                    <FaPlus /> Nouvelle Dépense
+                </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                        <p className="text-gray-600">Chargement des dépenses...</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-500 font-medium">Chargement des dépenses...</p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredDepenses.map(d => (
+                                <tr key={d.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900">{d.transaction.description}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{d.categorie_depense_display}</td>
+                                    <td className="px-6 py-4 text-right text-sm font-bold text-red-600">{d.transaction.montant.toLocaleString('fr-FR')} Ar</td>
+                                    <td className="px-6 py-4 text-right text-sm">
+                                        <button onClick={() => openEditModal(d)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"><FaEdit /></button>
+                                        <button onClick={() => requestDelete(d)} className="p-2 text-red-600 hover:bg-red-100 rounded-full"><FaTrash /></button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredDepenses.map(d => (
-                                    <tr key={d.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">{d.transaction.description}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{d.categorie_depense_display}</td>
-                                        <td className="px-6 py-4 text-right text-sm font-bold text-red-600">{d.transaction.montant.toLocaleString('fr-FR')} Ar</td>
-                                        <td className="px-6 py-4 text-right text-sm">
-                                            <button onClick={() => openEditModal(d)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"><FaEdit /></button>
-                                            <button onClick={() => requestDelete(d)} className="p-2 text-red-600 hover:bg-red-100 rounded-full"><FaTrash /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredDepenses.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">
-                                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                <p>Aucune dépense trouvée</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                            ))}
+                        </tbody>
+                    </table>
+                    {filteredDepenses.length === 0 && (
+                        <div className="p-8 text-center text-gray-500">
+                            <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p>Aucune dépense trouvée</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
@@ -232,17 +241,17 @@ const DepensesPage = () => {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
-                                    <input type="text" value={form.fournisseur} onChange={e => setForm({ ...form, fournisseur: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Fournisseur</label>
+                                    <input type="text" value={form.fournisseur} onChange={e => setForm({ ...form, fournisseur: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">N° Facture</label>
-                                    <input type="text" value={form.numero_facture} onChange={e => setForm({ ...form, numero_facture: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">N° Facture</label>
+                                    <input type="text" value={form.numero_facture} onChange={e => setForm({ ...form, numero_facture: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6 text-right">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
-                                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
+                                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmitting}>Annuler</button>
+                                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Enregistrement...' : 'Enregistrer'}</button>
                             </div>
                         </form>
                     </div>

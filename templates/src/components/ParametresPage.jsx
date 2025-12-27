@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api'; // Assurez-vous que le chemin est correct
 import { toast } from 'react-toastify'; // Pour les notifications
 import useDocumentTitle from '../hooks/useDocumentTitle';

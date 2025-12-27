@@ -110,6 +110,7 @@ export const tarifAPI = {
   create: async (tarifData) => handleApiResponse(() => apiClient.post('/api/tarifs/', tarifData)),
   update: async (id, tarifData) => handleApiResponse(() => apiClient.put(`/api/tarifs/${id}/`, tarifData)),
   delete: async (id) => handleApiResponse(() => apiClient.delete(`/api/tarifs/${id}/`)),
+  importTarifsDefaut: async () => handleApiResponse(() => apiClient.post('/api/tarifs/import_tarifs_defaut/')),
 };
 
 // Services pour les paliers de remise

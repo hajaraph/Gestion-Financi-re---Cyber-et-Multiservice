@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { tarifAPI, produitAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import PaliersRemiseModal from './PaliersRemiseModal';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaTrash, FaEdit, FaPercentage } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaPercentage, FaDownload } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const TarifsPage = () => {
@@ -188,6 +188,23 @@ const TarifsPage = () => {
     setShowPaliersModal(true);
   };
 
+  const handleImportTarifs = async () => {
+    if (window.confirm("Voulez-vous importer les tarifs standards par défaut ?")) {
+      setLoading(true);
+      try {
+        const result = await tarifAPI.importTarifsDefaut();
+        if (result.success) {
+          showNotification(result.data.message);
+          await loadInitialData();
+        } else {
+          showNotification(result.error || "Erreur lors de l'importation.", 'error');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const filteredTarifs = tarifs.filter(tarif =>
     tarif.nom_service.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (selectedCategory === '' || tarif.categorie === selectedCategory)
@@ -208,9 +225,37 @@ const TarifsPage = () => {
         <p className="text-gray-600">Gérez les prix et les produits consommés par vos services.</p>
       </div>
 
-      <div className="mb-6 flex justify-between items-center">
-        <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-md pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
-        <button onClick={() => { resetForm(); setShowModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><FaPlus /> Nouveau tarif</button>
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="relative flex-1 max-w-md">
+          <input
+            type="text"
+            placeholder="Rechercher par nom de service..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleImportTarifs}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            title="Importer la liste des tarifs par défaut"
+          >
+            <FaDownload className="w-4 h-4" />
+            Importer Standards
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <FaPlus className="w-4 h-4" />
+            Nouveau tarif
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">

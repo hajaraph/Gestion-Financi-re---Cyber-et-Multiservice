@@ -14,9 +14,7 @@ const TarifsPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTarif, setEditingTarif] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tarifToDelete, setTarifToDelete] = useState(null);
@@ -75,7 +73,6 @@ const TarifsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setErrors({});
     try {
       const result = editingTarif
         ? await tarifAPI.update(editingTarif.id, formData)
@@ -86,8 +83,11 @@ const TarifsPage = () => {
         setShowModal(false);
         showNotification(editingTarif ? 'Tarif modifié!' : 'Tarif créé!', 'success');
       } else {
-        setErrors(result.error || { general: 'Une erreur est survenue.' });
+        showNotification(result.error?.general || 'Une erreur est survenue.', 'error');
       }
+    } catch (error) {
+      console.error(error);
+      showNotification('Erreur réseau ou serveur.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -206,8 +206,7 @@ const TarifsPage = () => {
   };
 
   const filteredTarifs = tarifs.filter(tarif =>
-    tarif.nom_service.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedCategory === '' || tarif.categorie === selectedCategory)
+    tarif.nom_service.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -225,102 +224,96 @@ const TarifsPage = () => {
         <p className="text-gray-600">Gérez les prix et les produits consommés par vos services.</p>
       </div>
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex-1 relative group">
+          <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
           <input
             type="text"
-            placeholder="Rechercher par nom de service..."
+            placeholder="Rechercher un service (nom)..."
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
         </div>
-
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1 relative group">
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Rechercher un service (nom)..."
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="flex gap-2">
           <button
-            onClick={() => { setEditingTarif(null); setShowModal(true); }}
+            onClick={handleImportTarifs}
+            className="px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-all transform active:scale-95 font-bold flex items-center gap-2"
+            title="Importer les tarifs standards"
+          >
+            <FaDownload /> Importer
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
             className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
           >
             <FaPlus /> Nouveau Tarif
           </button>
         </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-500 font-medium">Chargement des tarifs...</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produits Consommés</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTarifs.map(tarif => (
-                  <tr key={tarif.id}>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{tarif.nom_service}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {tarif.consommations.map(c => `${c.produit_nom} (x${c.quantite})`).join(', ') || 'Aucun'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div>{tarif.prix_unitaire} Ar</div>
-                      {tarif.nombre_paliers > 0 && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-normal">
-                          {tarif.nombre_paliers} palier(s) remise
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleManageRemises(tarif)}
-                          className="text-purple-600 hover:text-purple-900"
-                          title="Gérer les remises"
-                        >
-                          <FaPercentage />
-                        </button>
-                        <button onClick={() => handleEdit(tarif)} className="text-blue-600 hover:text-blue-900" title="Modifier le tarif">
-                          <FaEdit />
-                        </button>
-                        <button onClick={() => handleDeleteClick(tarif)} className="text-red-600 hover:text-red-900" title="Supprimer le tarif">
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredTarifs.length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p>Aucun tarif trouvé</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">Chargement des tarifs...</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produits Consommés</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredTarifs.map(tarif => (
+                <tr key={tarif.id}>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{tarif.nom_service}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {tarif.consommations.map(c => `${c.produit_nom} (x${c.quantite})`).join(', ') || 'Aucun'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div>{tarif.prix_unitaire} Ar</div>
+                    {tarif.nombre_paliers > 0 && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-normal">
+                        {tarif.nombre_paliers} palier(s) remise
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleManageRemises(tarif)}
+                        className="text-purple-600 hover:text-purple-900"
+                        title="Gérer les remises"
+                      >
+                        <FaPercentage />
+                      </button>
+                      <button onClick={() => handleEdit(tarif)} className="text-blue-600 hover:text-blue-900" title="Modifier le tarif">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDeleteClick(tarif)} className="text-red-600 hover:text-red-900" title="Supprimer le tarif">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredTarifs.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p>Aucun tarif trouvé</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">

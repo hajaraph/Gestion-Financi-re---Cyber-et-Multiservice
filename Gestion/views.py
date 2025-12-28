@@ -83,7 +83,6 @@ def dashboard_stats(request):
 
     end_date = today
 
-    Q(date_transaction__date__gte=start_date, date_transaction__date__lte=end_date)
 
     # 1. Statistiques principales
     # Exclure les transactions d'usage interne (montant = 0 et description contient [USAGE INTERNE])
@@ -141,7 +140,7 @@ def dashboard_stats(request):
     ).order_by('-date_transaction')[:5]
 
     # 4. Résumé financier
-    benefice_net = recettes - depenses
+    benefice_net = Decimal(str(recettes)) - Decimal(str(depenses))
 
     response_data = {
         'statistiques_principales': {

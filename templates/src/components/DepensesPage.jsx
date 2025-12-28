@@ -14,7 +14,6 @@ const DepensesPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingDepense, setEditingDepense] = useState(null);
-    const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [toDelete, setToDelete] = useState(null);
@@ -52,6 +51,7 @@ const DepensesPage = () => {
 
     useEffect(() => {
         loadInitialData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const notify = (message, type = 'success') => {
@@ -62,7 +62,7 @@ const DepensesPage = () => {
     const openCreateModal = () => {
         setEditingDepense(null);
         setForm(emptyForm);
-        setErrors({});
+        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
         setShowModal(true);
     };
 
@@ -75,14 +75,14 @@ const DepensesPage = () => {
             fournisseur: depense.fournisseur || '',
             numero_facture: depense.numero_facture || '',
         });
-        setErrors({});
+        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setErrors({});
+        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
 
         const payload = {
             transaction: {
@@ -103,7 +103,7 @@ const DepensesPage = () => {
             setShowModal(false);
             await loadInitialData();
         } else {
-            setErrors(result.error || { general: 'Une erreur est survenue.' });
+            notify(result.error?.general || "Une erreur est survenue lors de l'enregistrement.", "error");
         }
         setIsSubmitting(false);
     };

@@ -1106,13 +1106,22 @@ class TypePapierViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@permission_required('manage_produits')
 class ProduitViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour gérer les produits avec suivi de stock et de prix
     """
     queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
     serializer_class = ProduitSerializer
+
+    def get_permissions(self):
+        """
+        Gestion fine des permissions:
+        - Lecture seule : 'view_produit'
+        - Modification : 'manage_produits'
+        """
+        if self.action in ['list', 'retrieve', 'statistiques', 'produits_par_categorie', 'historique_prix', 'mouvements']:
+            return [CustomPermission('view_produit')]
+        return [CustomPermission('manage_produits')]
 
     def get_queryset(self):
         """

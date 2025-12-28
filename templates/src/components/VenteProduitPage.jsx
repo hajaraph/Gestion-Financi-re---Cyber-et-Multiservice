@@ -137,11 +137,13 @@ const VenteProduitPage = () => {
                   onClick={() => openConfirmModal(p)}
                   className="p-3 rounded-lg cursor-pointer mb-2 bg-gray-100 hover:bg-gray-200"
                 >
-                  <p className="font-semibold">{p.designation}</p>
-                  <p className="text-sm text-gray-600">
-                    {p.prix_vente.toLocaleString('fr-FR')} Ar -
-                    <span className={p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'font-bold text-red-500' : ''}>
-                      Stock: {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
+                  <div className="flex justify-between items-center">
+                    <p className="font-bold text-gray-800">{p.designation}</p>
+                    <span className="text-blue-600 font-black">{p.prix_vente.toLocaleString('fr-FR')} Ar</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Stock: <span className={`font-bold ${p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'text-red-500' : 'text-gray-900'}`}>
+                      {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
                     </span>
                   </p>
                 </div>
@@ -260,11 +262,20 @@ const VenteProduitPage = () => {
                   Total: {usageInterne ? '0' : Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
-                <button type="button" onClick={() => setShowConfirmModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmitting}>
+              <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 bg-gray-50/50 p-8">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                  disabled={isSubmitting}
+                >
                   Annuler
                 </button>
-                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                >
                   {isSubmitting ? 'Enregistrement...' : (usageInterne ? 'Valider Consommation' : 'Valider la Vente')}
                 </button>
               </div>

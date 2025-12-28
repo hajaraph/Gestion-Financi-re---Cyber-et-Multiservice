@@ -160,9 +160,15 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </div>
 
                 <div className="pt-4">
-                    <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-semibold">Services</h4>
-                        <button type="button" onClick={handleAddLigne} className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 flex items-center gap-1"><FaPlus size={12} /> Ajouter</button>
+                    <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-lg font-bold text-gray-800">Services & Prestations</h4>
+                        <button
+                            type="button"
+                            onClick={handleAddLigne}
+                            className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-2 transition-all font-bold text-sm"
+                        >
+                            <FaPlus size={12} /> Ajouter un service
+                        </button>
                     </div>
                     <div className="space-y-4">
                         {lignes.map((ligne) => (
@@ -215,7 +221,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                                 onChange={(e) => handleLigneChange(ligne.id, 'usage_interne', e.target.checked)}
                                                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
                                             />
-                                            <span className="text-xs font-medium text-gray-600">Usage Interne</span>
+                                            <span className="text-sm font-semibold text-gray-700">Usage Interne</span>
                                         </label>
                                     </div>
                                     <div className="md:col-span-2">
@@ -262,16 +268,25 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </div>
             </form >
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50/50 -mx-6 -mb-6">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="text-2xl font-bold text-blue-600">
+            <div className="p-8 border-t border-gray-100 bg-gray-50/50">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-3xl font-black text-blue-600">
                         Total: {total.toLocaleString('fr-FR')} Ar
                     </div>
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmitting}>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 md:flex-none px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                            disabled={isSubmitting}
+                        >
                             Annuler
                         </button>
-                        <button type="submit" className="flex-1 md:flex-none px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50" disabled={isSubmitting}>
+                        <button
+                            type="submit"
+                            className="flex-1 md:flex-none px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50"
+                            disabled={isSubmitting}
+                        >
                             <FaSave /> {isSubmitting ? 'Enregistrement...' : 'Enregistrer la Vente'}
                         </button>
                     </div>

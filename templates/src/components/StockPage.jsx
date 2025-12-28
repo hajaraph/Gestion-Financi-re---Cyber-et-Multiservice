@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes, FaSearch } from 'react-icons/fa'; // Import de FaTimes
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { useStockAlert } from '../context/StockAlertContext';
 
@@ -49,6 +49,7 @@ const StockPage = () => {
 
   useEffect(() => {
     loadStocks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const notify = (message, type = 'success') => {
@@ -291,7 +292,7 @@ const StockPage = () => {
           />
         </div>
         <button
-          onClick={fetchStock}
+          onClick={loadStocks}
           className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
         >
           Actualiser
@@ -404,9 +405,22 @@ const StockPage = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">N° Facture (Optionnel)</label>
                 <input type="text" value={entryForm.numero_facture} onChange={(e) => setEntryForm({ ...entryForm, numero_facture: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none" />
               </div>
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
-                <button type="button" onClick={() => setShowEntryModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingEntry}>Annuler</button>
-                <button type="submit" disabled={isSubmittingEntry} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}</button>
+              <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 bg-gray-50/50 p-8 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEntryModal(false)}
+                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                  disabled={isSubmittingEntry}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEntry}
+                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                >
+                  {isSubmittingEntry ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
               </div>
             </form>
           </div>
@@ -438,9 +452,22 @@ const StockPage = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Commentaire (Optionnel)</label>
                 <textarea value={adjustmentForm.commentaire} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, commentaire: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none h-24 resize-none" />
               </div>
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
-                <button type="button" onClick={() => setShowAdjustmentModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingAdjustment}>Annuler</button>
-                <button type="submit" disabled={isSubmittingAdjustment} className="px-8 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}</button>
+              <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 bg-gray-50/50 p-8 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAdjustmentModal(false)}
+                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                  disabled={isSubmittingAdjustment}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingAdjustment}
+                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                >
+                  {isSubmittingAdjustment ? 'Ajustement...' : 'Ajuster'}
+                </button>
               </div>
             </form>
           </div>
@@ -466,9 +493,22 @@ const StockPage = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Commentaire (Optionnel)</label>
                 <textarea value={revaluationForm.commentaire} onChange={(e) => setRevaluationForm({ ...revaluationForm, commentaire: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none h-24 resize-none" />
               </div>
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
-                <button type="button" onClick={() => setShowRevaluationModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all" disabled={isSubmittingRevaluation}>Annuler</button>
-                <button type="submit" disabled={isSubmittingRevaluation} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}</button>
+              <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 bg-gray-50/50 p-8 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowRevaluationModal(false)}
+                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                  disabled={isSubmittingRevaluation}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRevaluation}
+                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                >
+                  {isSubmittingRevaluation ? 'Réévaluation...' : 'Réévaluer'}
+                </button>
               </div>
             </form>
           </div>

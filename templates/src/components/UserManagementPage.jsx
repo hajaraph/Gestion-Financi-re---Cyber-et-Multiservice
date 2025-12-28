@@ -294,14 +294,14 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
             <>
               <button
                 onClick={handleInitializePermissions}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition-all flex items-center gap-2 font-bold shadow-lg transform active:scale-95"
               >
                 <FaInfoCircle className="w-4 h-4" />
                 Init. Permissions
               </button>
               <button
                 onClick={handleCreateDefaultRoles}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all flex items-center gap-2 font-bold shadow-lg transform active:scale-95"
               >
                 <FaCheckCircle className="w-4 h-4" />
                 Créer Rôles Défaut
@@ -310,7 +310,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
           )}
           <button
             onClick={openCreate}
-            className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -392,216 +392,230 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
               </button>
             </div>
 
-            <form onSubmit={onSubmit} className="p-6 space-y-4">
-              {errors.general && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                  <span className="text-red-600 text-sm">{errors.general}</span>
-                </div>
-              )}
+            <form onSubmit={onSubmit} className="flex flex-col flex-grow overflow-hidden">
+              <div className="flex-grow overflow-y-auto p-6 space-y-6">
+                {errors.general && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <span className="text-red-600 text-sm">{errors.general}</span>
+                  </div>
+                )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom d'utilisateur *</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.username}
-                    onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.username ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="Nom d'utilisateur"
-                    disabled={isSubmitting || editing}
-                  />
-                  {errors.username && <span className="text-red-600 text-xs mt-1 block">{errors.username}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="email@example.com"
-                    disabled={isSubmitting}
-                  />
-                  {errors.email && <span className="text-red-600 text-xs mt-1 block">{errors.email}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe {editing ? '(Laisser vide pour ne pas changer)' : '*'}</label>
-                  <input
-                    type="password"
-                    required={!editing}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="********"
-                    disabled={isSubmitting}
-                  />
-                  {errors.password && <span className="text-red-600 text-xs mt-1 block">{errors.password}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prénom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.first_name}
-                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                    placeholder="Prénom"
-                    disabled={isSubmitting}
-                  />
-                  {errors.first_name && <span className="text-red-600 text-xs mt-1 block">{errors.first_name}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.last_name}
-                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                    placeholder="Nom"
-                    disabled={isSubmitting}
-                  />
-                  {errors.last_name && <span className="text-red-600 text-xs mt-1 block">{errors.last_name}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                  <input
-                    type="text"
-                    value={form.telephone}
-                    onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.telephone ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="Téléphone"
-                    disabled={isSubmitting}
-                  />
-                  {errors.telephone && <span className="text-red-600 text-xs mt-1 block">{errors.telephone}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
-                  <input
-                    type="text"
-                    value={form.poste}
-                    onChange={(e) => setForm({ ...form, poste: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.poste ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    placeholder="Poste"
-                    disabled={isSubmitting}
-                  />
-                  {errors.poste && <span className="text-red-600 text-xs mt-1 block">{errors.poste}</span>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rôle *</label>
-                  <select
-                    required
-                    value={form.role || ''}
-                    onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.role ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Sélectionner un rôle</option>
-                    {roles.map(r => (
-                      <option key={r.id} value={r.id}>{r.nom}</option>
-                    ))}
-                  </select>
-                  {errors.role && <span className="text-red-600 text-xs mt-1 block">{errors.role}</span>}
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={form.actif}
-                    onChange={(e) => setForm({ ...form, actif: e.target.checked })}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    disabled={isSubmitting}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Compte actif</span>
-                </label>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-md font-semibold text-gray-800 mb-2">Restrictions Horaires</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Heure de début</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom d'utilisateur *</label>
                     <input
-                      type="time"
-                      value={form.heure_debut_travail}
-                      onChange={(e) => setForm({ ...form, heure_debut_travail: e.target.value })}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.heure_debut_travail ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                      disabled={isSubmitting}
+                      type="text"
+                      required
+                      value={form.username}
+                      onChange={(e) => setForm({ ...form, username: e.target.value })}
+                      className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.username ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="Nom d'utilisateur"
+                      disabled={isSubmitting || editing}
                     />
-                    {errors.heure_debut_travail && <span className="text-red-600 text-xs mt-1 block">{errors.heure_debut_travail}</span>}
+                    {errors.username && <span className="text-red-600 text-xs mt-1 block">{errors.username}</span>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Heure de fin</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
                     <input
-                      type="time"
-                      value={form.heure_fin_travail}
-                      onChange={(e) => setForm({ ...form, heure_fin_travail: e.target.value })}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.heure_fin_travail ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="email@example.com"
                       disabled={isSubmitting}
                     />
-                    {errors.heure_fin_travail && <span className="text-red-600 text-xs mt-1 block">{errors.heure_fin_travail}</span>}
+                    {errors.email && <span className="text-red-600 text-xs mt-1 block">{errors.email}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe {editing ? '(Laisser vide pour ne pas changer)' : '*'}</label>
+                    <input
+                      type="password"
+                      required={!editing}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="********"
+                      disabled={isSubmitting}
+                    />
+                    {errors.password && <span className="text-red-600 text-xs mt-1 block">{errors.password}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Prénom *</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.first_name}
+                      onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                      placeholder="Prénom"
+                      disabled={isSubmitting}
+                    />
+                    {errors.first_name && <span className="text-red-600 text-xs mt-1 block">{errors.first_name}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom *</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.last_name}
+                      onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                      placeholder="Nom"
+                      disabled={isSubmitting}
+                    />
+                    {errors.last_name && <span className="text-red-600 text-xs mt-1 block">{errors.last_name}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                    <input
+                      type="text"
+                      value={form.telephone}
+                      onChange={(e) => setForm({ ...form, telephone: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.telephone ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="Téléphone"
+                      disabled={isSubmitting}
+                    />
+                    {errors.telephone && <span className="text-red-600 text-xs mt-1 block">{errors.telephone}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
+                    <input
+                      type="text"
+                      value={form.poste}
+                      onChange={(e) => setForm({ ...form, poste: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.poste ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      placeholder="Poste"
+                      disabled={isSubmitting}
+                    />
+                    {errors.poste && <span className="text-red-600 text-xs mt-1 block">{errors.poste}</span>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rôle *</label>
+                    <select
+                      required
+                      value={form.role || ''}
+                      onChange={(e) => setForm({ ...form, role: e.target.value })}
+                      className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${errors.role ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Sélectionner un rôle</option>
+                      {roles.map(r => (
+                        <option key={r.id} value={r.id}>{r.nom}</option>
+                      ))}
+                    </select>
+                    {errors.role && <span className="text-red-600 text-xs mt-1 block">{errors.role}</span>}
                   </div>
                 </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jours de travail</label>
-                  <div className="flex flex-wrap gap-2">
-                    {joursSemaine.map(jour => (
-                      <label key={jour.id} className="inline-flex items-center">
-                        <input
-                          type="checkbox"
-                          value={jour.id}
-                          checked={form.jours_travail.split(',').includes(jour.id)}
-                          onChange={() => handleJoursTravailChange(jour.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          disabled={isSubmitting}
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{jour.nom}</span>
-                      </label>
+
+                <div className="flex items-center">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={form.actif}
+                      onChange={(e) => setForm({ ...form, actif: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      disabled={isSubmitting}
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Compte actif</span>
+                  </label>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-md font-semibold text-gray-800 mb-2">Restrictions Horaires</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Heure de début</label>
+                      <input
+                        type="time"
+                        value={form.heure_debut_travail}
+                        onChange={(e) => setForm({ ...form, heure_debut_travail: e.target.value })}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.heure_debut_travail ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                        disabled={isSubmitting}
+                      />
+                      {errors.heure_debut_travail && <span className="text-red-600 text-xs mt-1 block">{errors.heure_debut_travail}</span>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Heure de fin</label>
+                      <input
+                        type="time"
+                        value={form.heure_fin_travail}
+                        onChange={(e) => setForm({ ...form, heure_fin_travail: e.target.value })}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.heure_fin_travail ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                        disabled={isSubmitting}
+                      />
+                      {errors.heure_fin_travail && <span className="text-red-600 text-xs mt-1 block">{errors.heure_fin_travail}</span>}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Jours de travail</label>
+                    <div className="flex flex-wrap gap-2">
+                      {joursSemaine.map(jour => (
+                        <label key={jour.id} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            value={jour.id}
+                            checked={form.jours_travail.split(',').includes(jour.id)}
+                            onChange={() => handleJoursTravailChange(jour.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            disabled={isSubmitting}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">{jour.nom}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.jours_travail && <span className="text-red-600 text-xs mt-1 block">{errors.jours_travail}</span>}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-md font-semibold text-gray-800 mb-2">Permissions Spécifiques</h4>
+                  <p className="text-sm text-gray-600 mb-4">Ces permissions s'ajoutent ou annulent celles du rôle.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {permissions.map(perm => (
+                      <div key={perm.id} className="flex items-center justify-between p-2 border border-gray-200 rounded-lg">
+                        <span className="text-sm text-gray-800">{perm.nom}</span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handlePermissionChange(perm.id, 'supplementaire')}
+                            className={`p-1 rounded-full ${getPermissionStatus(perm.id) === 'supplementaire' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-green-100 hover:text-green-700'}`}
+                            title="Ajouter cette permission"
+                            disabled={isSubmitting}
+                          >
+                            <FaCheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePermissionChange(perm.id, 'refusee')}
+                            className={`p-1 rounded-full ${getPermissionStatus(perm.id) === 'refusee' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-700'}`}
+                            title="Refuser cette permission"
+                            disabled={isSubmitting}
+                          >
+                            <FaTimesCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  {errors.jours_travail && <span className="text-red-600 text-xs mt-1 block">{errors.jours_travail}</span>}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-md font-semibold text-gray-800 mb-2">Permissions Spécifiques</h4>
-                <p className="text-sm text-gray-600 mb-4">Ces permissions s'ajoutent ou annulent celles du rôle.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {permissions.map(perm => (
-                    <div key={perm.id} className="flex items-center justify-between p-2 border border-gray-200 rounded-lg">
-                      <span className="text-sm text-gray-800">{perm.nom}</span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handlePermissionChange(perm.id, 'supplementaire')}
-                          className={`p-1 rounded-full ${getPermissionStatus(perm.id) === 'supplementaire' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-green-100 hover:text-green-700'}`}
-                          title="Ajouter cette permission"
-                          disabled={isSubmitting}
-                        >
-                          <FaCheckCircle className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePermissionChange(perm.id, 'refusee')}
-                          className={`p-1 rounded-full ${getPermissionStatus(perm.id) === 'refusee' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-700'}`}
-                          title="Refuser cette permission"
-                          disabled={isSubmitting}
-                        >
-                          <FaTimesCircle className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50 p-6 -mx-6 -mb-6">
-                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all">Annuler</button>
-                <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</button>
+              <div className="flex justify-end gap-4 p-8 border-t border-gray-100 bg-gray-50/50">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                >
+                  {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}
+                </button>
               </div>
             </form>
           </div>

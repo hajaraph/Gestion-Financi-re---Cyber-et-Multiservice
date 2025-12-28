@@ -3,7 +3,7 @@ import { tarifAPI, produitAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import PaliersRemiseModal from './PaliersRemiseModal';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaTrash, FaEdit, FaPercentage, FaDownload } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaPercentage, FaDownload, FaSearch } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const TarifsPage = () => {

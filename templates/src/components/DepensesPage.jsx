@@ -163,7 +163,7 @@ const DepensesPage = () => {
                     />
                 </div>
                 <button
-                    onClick={() => { setEditingDepense(null); resetForm(); setShowModal(true); }}
+                    onClick={openCreateModal}
                     className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
                 >
                     <FaPlus /> Nouvelle Dépense

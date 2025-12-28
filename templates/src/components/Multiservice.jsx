@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
-import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch, FaTimes } from 'react-icons/fa'; // Import de FaTimes et FaSearch
+import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch, FaTimes } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
@@ -13,7 +13,6 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
 
     useEffect(() => {
         const newTotal = lignes.reduce((acc, ligne) => {
-            // Si usage interne, le montant est 0
             if (ligne.usage_interne) return acc;
             return acc + (ligne.quantite * ligne.prix_unitaire);
         }, 0);
@@ -27,7 +26,6 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
         const originalPrice = parseFloat(tarif.prix_unitaire);
         if (!tarif.paliers_remise || tarif.paliers_remise.length === 0) return originalPrice;
 
-        // Filtrer les paliers valides (quantité ok et actif)
         const paliersValides = tarif.paliers_remise
             .filter(p => p.actif && parseFloat(qte) >= parseFloat(p.quantite_minimum))
             .sort((a, b) => b.quantite_minimum - a.quantite_minimum);
@@ -58,7 +56,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 prix_unitaire: defaultTarif.prix_unitaire,
                 remise_manuelle: 0,
                 consommations: defaultTarif.consommations,
-                usage_interne: false, // Nouveau champ
+                usage_interne: false,
             }]);
         }
     };
@@ -81,7 +79,6 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                     updatedLigne.prix_unitaire = calculatePriceWithDiscounts(updatedLigne.tarif_service_id, updatedLigne.quantite);
                 } else if (field === 'usage_interne') {
                     updatedLigne.usage_interne = value;
-                    // Si usage interne, on peut visuellement mettre le prix à 0 ou le garder pour info mais ne pas le compter
                 } else {
                     updatedLigne[field] = parseFloat(value) || 0;
                 }
@@ -281,6 +278,210 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </div>
             </div>
         </div >
+    );
+};
+
+const Multiservice = () => {
+    useDocumentTitle('Multiservices');
+    const [ventes, setVentes] = useState([]);
+    const [tarifs, setTarifs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [notification, setNotification] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const [ventesResult, tarifsResult] = await Promise.all([
+                venteGroupeeAPI.getAll(),
+                tarifAPI.getAll({ actif: true })
+            ]);
+            if (ventesResult.success) setVentes(ventesResult.data);
+            if (tarifsResult.success) setTarifs(tarifsResult.data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const dashboardStats = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const ventesAujourdhui = ventes.filter(v => v.date_creation.startsWith(today));
+
+        const totalVendu = ventesAujourdhui.reduce((acc, v) => acc + parseFloat(v.transaction.montant), 0);
+        const nombreVentes = ventesAujourdhui.length;
+
+        const servicesLesPlusVendus = ventesAujourdhui
+            .flatMap(v => v.lignes)
+            .reduce((acc, ligne) => {
+                acc[ligne.tarif_service_nom] = (acc[ligne.tarif_service_nom] || 0) + parseFloat(ligne.quantite);
+                return acc;
+            }, {});
+
+        const serviceTop = Object.entries(servicesLesPlusVendus).sort((a, b) => b[1] - a[1])[0];
+
+        return {
+            totalVendu,
+            nombreVentes,
+            serviceTop: serviceTop ? `${serviceTop[0]} (x${serviceTop[1]})` : 'N/A',
+        };
+    }, [ventes]);
+
+    const notify = (message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 4000);
+    };
+
+    const handleSave = async (payload) => {
+        setIsSubmitting(true);
+        const response = await venteGroupeeAPI.create(payload);
+        if (response.success) {
+            notify('Vente enregistrée avec succès!');
+            setShowModal(false);
+            await loadData();
+        } else {
+            notify(response.error?.detail || response.error || 'Une erreur est survenue.', 'error');
+        }
+        setIsSubmitting(false);
+    };
+
+    const handlePrint = async (venteId) => {
+        notify('Génération de la facture...', 'info');
+        const result = await venteGroupeeAPI.printInvoice(venteId);
+        if (result.success) {
+            const url = window.URL.createObjectURL(new Blob([result.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `facture_${venteId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            notify('Facture téléchargée.', 'success');
+        } else {
+            notify('Erreur lors de l\'impression de la facture.', 'error');
+        }
+    };
+
+    const filteredVentes = ventes.filter(vente => {
+        const term = searchTerm.toLowerCase();
+        const clientMatch = vente.client_nom?.toLowerCase().includes(term);
+        const serviceMatch = vente.lignes.some(l => l.tarif_service_nom.toLowerCase().includes(term));
+        return clientMatch || serviceMatch;
+    });
+
+    return (
+        <div className="p-6">
+            {notification && (
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
+                    } text-white`}>
+                    <NotificationIcon type={notification.type} />
+                    <span>{notification.message}</span>
+                </div>
+            )}
+
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-900">Ventes Multiservices</h1>
+                <p className="text-gray-600">Historique et enregistrement des ventes groupées.</p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-2xl shadow">
+                    <div className="text-gray-500 text-sm">Total Vendu (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold text-green-600">{dashboardStats.totalVendu.toLocaleString('fr-FR')} Ar</div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow">
+                    <div className="text-gray-500 text-sm">Nombre de Ventes (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold">{dashboardStats.nombreVentes}</div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow">
+                    <div className="text-gray-500 text-sm">Top Service (Aujourd'hui)</div>
+                    <div className="text-2xl font-bold truncate">{dashboardStats.serviceTop}</div>
+                </div>
+            </div>
+
+            <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                <div className="relative flex-1 max-w-md">
+                    <input
+                        type="text"
+                        placeholder="Rechercher par client ou service..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <FaSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                </div>
+                <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2">
+                    <FaPlus /> Nouvelle Vente
+                </button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow overflow-hidden">
+                {loading ? (
+                    <div className="p-8 text-center">
+                        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-gray-600">Chargement des ventes...</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Détails</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredVentes.map(vente => (
+                                    <tr key={vente.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(vente.date_creation).toLocaleString('fr-FR')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{vente.client_nom || 'N/A'}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            {vente.lignes.map(l => (
+                                                <span key={l.id} className={l.usage_interne ? "text-yellow-600 font-medium" : ""}>
+                                                    {l.tarif_service_nom} (x{l.quantite}){l.usage_interne ? " [INTERNE]" : ""}{', '}
+                                                </span>
+                                            ))}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                                            {vente.transaction.montant.toLocaleString('fr-FR')} Ar
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button onClick={() => handlePrint(vente.id)} className="text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100">
+                                                <FaPrint />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredVentes.length === 0 && (
+                            <div className="p-8 text-center text-gray-500">
+                                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <p>Aucune vente trouvée</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {showModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <FormulaireVente onClose={() => setShowModal(false)} onSave={handleSave} tarifs={tarifs} isSubmitting={isSubmitting} />
+                </div>
+            )}
+        </div>
     );
 };
 

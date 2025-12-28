@@ -15,6 +15,7 @@ const VenteProduitPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
   const [remise, setRemise] = useState(0);
+  const [usageInterne, setUsageInterne] = useState(false); // Nouvel état
   const [recentSales, setRecentSales] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { refreshAlerts } = useStockAlert();
@@ -54,6 +55,7 @@ const VenteProduitPage = () => {
     setSelectedProduit(produit);
     setQuantite(1);
     setRemise(0);
+    setUsageInterne(false); // Réinitialiser à chaque ouverture
     setShowConfirmModal(true);
   };
 
@@ -65,15 +67,15 @@ const VenteProduitPage = () => {
     }
     setIsSubmitting(true);
     try {
-      const totalApresRemise = Math.max(0, (selectedProduit.prix_vente * quantite) - remise);
+      const totalApresRemise = usageInterne ? 0 : Math.max(0, (selectedProduit.prix_vente * quantite) - remise);
       const payload = {
         produit: selectedProduit.id,
         quantite: quantite,
-        prix_unitaire: totalApresRemise / quantite, // Envoyer le prix unitaire effectif
+        prix_unitaire: usageInterne ? 0 : totalApresRemise / quantite, // Prix unitaire à 0 si usage interne
       };
       const result = await venteProduitAPI.create(payload);
       if (result.success) {
-        notify('Vente enregistrée avec succès!');
+        notify(usageInterne ? 'Consommation interne enregistrée!' : 'Vente enregistrée avec succès!');
         setShowConfirmModal(false);
         await Promise.all([fetchProduits(), fetchRecentSales(), refreshAlerts()]);
       } else {
@@ -97,7 +99,7 @@ const VenteProduitPage = () => {
   );
 
   return (
-    <div className="p-6 w-full"> {/* Animation retirée ici, car PageWrapper s'en charge */}
+    <div className="p-6 w-full">
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
           ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
@@ -223,15 +225,28 @@ const VenteProduitPage = () => {
                   value={remise}
                   onChange={(e) => setRemise(parseFloat(e.target.value) || 0)}
                   min="0"
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-red-600 font-bold"
+                  disabled={usageInterne}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-red-600 font-bold disabled:bg-gray-200"
                   placeholder="Montant à déduire..."
                 />
               </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="usageInterne"
+                  checked={usageInterne}
+                  onChange={(e) => setUsageInterne(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="usageInterne" className="ml-2 block text-sm text-gray-900">
+                  Usage Interne (Consommation)
+                </label>
+              </div>
               <div className="bg-gray-50 p-3 rounded-lg text-right space-y-1">
                 <div className="text-sm text-gray-500">Sous-total: {(selectedProduit.prix_vente * quantite).toLocaleString('fr-FR')} Ar</div>
-                {remise > 0 && <div className="text-sm text-red-500">Remise: -{remise.toLocaleString('fr-FR')} Ar</div>}
+                {remise > 0 && !usageInterne && <div className="text-sm text-red-500">Remise: -{remise.toLocaleString('fr-FR')} Ar</div>}
                 <div className="text-2xl font-bold text-blue-600">
-                  Total: {Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
+                  Total: {usageInterne ? '0' : Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
@@ -239,7 +254,7 @@ const VenteProduitPage = () => {
                   Annuler
                 </button>
                 <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 disabled:opacity-50 font-bold transition-all transform active:scale-95">
-                  {isSubmitting ? 'Enregistrement...' : 'Valider la Vente'}
+                  {isSubmitting ? 'Enregistrement...' : (usageInterne ? 'Valider Consommation' : 'Valider la Vente')}
                 </button>
               </div>
             </form>

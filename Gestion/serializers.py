@@ -293,7 +293,7 @@ class ServicePersonnaliseSerializer(serializers.ModelSerializer):
             'tarif_service_unite', 'quantite', 'prix_unitaire_original',
             'prix_unitaire_utilise', 'montant_total', 'montant_remise',
             'pourcentage_remise', 'remise_appliquee', 'remise_appliquee_description',
-            'details_supplementaires'
+            'details_supplementaires', 'usage_interne'
         ]
 
     def create(self, validated_data):
@@ -320,7 +320,7 @@ class ServicePersonnaliseCreateSerializer(serializers.ModelSerializer):
         fields = [
             'tarif_service_id', 'quantite', 'details_supplementaires',
             'description', 'montant_total', 'montant_remise', 'pourcentage_remise',
-            'prix_unitaire_final'
+            'prix_unitaire_final', 'usage_interne'
         ]
 
     @staticmethod
@@ -333,11 +333,15 @@ class ServicePersonnaliseCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         tarif_service = validated_data.pop('tarif_service_id')
+        usage_interne = validated_data.get('usage_interne', False)
 
         # Générer description automatique si non fournie
         description = validated_data.pop('description', '')
         if not description:
             description = f"{tarif_service.nom_service} x{validated_data['quantite']} {tarif_service.unite_mesure}"
+        
+        if usage_interne:
+            description = f"[USAGE INTERNE] {description}"
 
         # Créer transaction temporaire pour calculer les remises
         transaction_temp = Transaction(
@@ -418,6 +422,7 @@ class ServiceRapideAvecRemiseSerializer(serializers.Serializer):
     description_personnalisee = serializers.CharField(max_length=255, required=False)
     forcer_prix = serializers.DecimalField(max_digits=8, decimal_places=2, required=False)
     ignorer_remises = serializers.BooleanField(default=False)
+    usage_interne = serializers.BooleanField(default=False)
 
     @staticmethod
     def validate_code_service(value):
@@ -431,10 +436,13 @@ class ServiceRapideAvecRemiseSerializer(serializers.Serializer):
         tarif_service = validated_data['code_service']
         quantite = validated_data['quantite']
         ignorer_remises = validated_data.get('ignorer_remises', False)
+        usage_interne = validated_data.get('usage_interne', False)
 
         # Description
         description = validated_data.get('description_personnalisee',
                                          f"{tarif_service.nom_service} x{quantite} {tarif_service.unite_mesure}")
+        if usage_interne:
+            description = f"[USAGE INTERNE] {description}"
 
         # Créer transaction
         transaction = Transaction.objects.create(
@@ -448,6 +456,7 @@ class ServiceRapideAvecRemiseSerializer(serializers.Serializer):
             'transaction': transaction,
             'tarif_service': tarif_service,
             'quantite': quantite,
+            'usage_interne': usage_interne,
         }
 
         # Forcer un prix spécifique si demandé
@@ -471,7 +480,8 @@ class ServiceRapideAvecRemiseSerializer(serializers.Serializer):
             'montant_remise': float(service.montant_remise),
             'pourcentage_remise': float(service.pourcentage_remise),
             'remise_appliquee': service.remise_appliquee.description if service.remise_appliquee else None,
-            'description': description
+            'description': description,
+            'usage_interne': usage_interne,
         }
 
 
@@ -828,7 +838,7 @@ class LigneDeVenteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LigneDeVente
-        fields = ['id', 'tarif_service', 'tarif_service_nom', 'quantite', 'prix_unitaire', 'montant_total', 'description']
+        fields = ['id', 'tarif_service', 'tarif_service_nom', 'quantite', 'prix_unitaire', 'montant_total', 'description', 'usage_interne']
 
 class VenteGroupeeSerializer(serializers.ModelSerializer):
     transaction = TransactionSerializer(read_only=True)
@@ -843,6 +853,7 @@ class LigneDeVenteCreateSerializer(serializers.Serializer):
     quantite = serializers.DecimalField(max_digits=10, decimal_places=2)
     prix_unitaire = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     description = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    usage_interne = serializers.BooleanField(default=False)
 
 class VenteGroupeeCreateSerializer(serializers.Serializer):
     client_nom = serializers.CharField(max_length=100, required=False, allow_blank=True)
@@ -871,19 +882,26 @@ class VenteGroupeeCreateSerializer(serializers.Serializer):
         lignes_a_creer = []
         for ligne_data in lignes_data:
             tarif_service = TarifService.objects.get(id=ligne_data['tarif_service_id'])
-            prix_unitaire = ligne_data.get('prix_unitaire', tarif_service.prix_unitaire)
+            usage_interne = ligne_data.get('usage_interne', False)
+            
+            if usage_interne:
+                prix_unitaire = 0
+                description_transaction += f"[INTERNE] {tarif_service.nom_service} x{ligne_data['quantite']}, "
+            else:
+                prix_unitaire = ligne_data.get('prix_unitaire', tarif_service.prix_unitaire)
+                description_transaction += f"{tarif_service.nom_service} x{ligne_data['quantite']}, "
+
             quantite = ligne_data['quantite']
             montant_ligne = quantite * prix_unitaire
             montant_total += montant_ligne
             
-            description_transaction += f"{tarif_service.nom_service} x{quantite}, "
-
             ligne_obj = LigneDeVente(
                 tarif_service=tarif_service,
                 quantite=quantite,
                 prix_unitaire=prix_unitaire,
                 montant_total=montant_ligne,
-                description=ligne_data.get('description', '')
+                description=ligne_data.get('description', ''),
+                usage_interne=usage_interne
             )
             lignes_a_creer.append(ligne_obj)
 

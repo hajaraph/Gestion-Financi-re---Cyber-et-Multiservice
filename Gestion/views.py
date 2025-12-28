@@ -86,8 +86,10 @@ def dashboard_stats(request):
     Q(date_transaction__date__gte=start_date, date_transaction__date__lte=end_date)
 
     # 1. Statistiques principales
+    # Exclure les transactions d'usage interne (montant = 0 et description contient [USAGE INTERNE])
     recettes = Transaction.objects.filter(
         type_transaction='RECETTE',
+        montant__gt=0,
         **{'date_transaction__date__gte': start_date, 'date_transaction__date__lte': end_date}
     ).aggregate(total=Sum('montant'))['total'] or 0
 
@@ -122,7 +124,8 @@ def dashboard_stats(request):
     # 2. Services populaires
     services_populaires = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
-        transaction__date_transaction__date__lte=end_date
+        transaction__date_transaction__date__lte=end_date,
+        usage_interne=False # Exclure l'usage interne des services populaires
     ).values(
         'tarif_service__nom_service',
         'tarif_service__categorie'
@@ -169,6 +172,7 @@ def dashboard_stats(request):
         yesterday = today - timedelta(days=1)
         recettes_hier = Transaction.objects.filter(
             type_transaction='RECETTE',
+            montant__gt=0,
             date_transaction__date=yesterday
         ).aggregate(total=Sum('montant'))['total'] or 0
         if recettes_hier > 0:

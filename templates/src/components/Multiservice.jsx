@@ -12,7 +12,11 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        const newTotal = lignes.reduce((acc, ligne) => acc + (ligne.quantite * ligne.prix_unitaire), 0);
+        const newTotal = lignes.reduce((acc, ligne) => {
+            // Si usage interne, le montant est 0
+            if (ligne.usage_interne) return acc;
+            return acc + (ligne.quantite * ligne.prix_unitaire);
+        }, 0);
         setTotal(newTotal);
     }, [lignes]);
 
@@ -54,6 +58,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 prix_unitaire: defaultTarif.prix_unitaire,
                 remise_manuelle: 0,
                 consommations: defaultTarif.consommations,
+                usage_interne: false, // Nouveau champ
             }]);
         }
     };
@@ -74,6 +79,9 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 } else if (field === 'quantite') {
                     updatedLigne.quantite = parseFloat(value) || 0;
                     updatedLigne.prix_unitaire = calculatePriceWithDiscounts(updatedLigne.tarif_service_id, updatedLigne.quantite);
+                } else if (field === 'usage_interne') {
+                    updatedLigne.usage_interne = value;
+                    // Si usage interne, on peut visuellement mettre le prix à 0 ou le garder pour info mais ne pas le compter
                 } else {
                     updatedLigne[field] = parseFloat(value) || 0;
                 }
@@ -125,7 +133,8 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
             lignes: lignes.map(l => ({
                 tarif_service_id: l.tarif_service_id,
                 quantite: l.quantite,
-                prix_unitaire: l.prix_unitaire,
+                prix_unitaire: l.usage_interne ? 0 : l.prix_unitaire,
+                usage_interne: l.usage_interne,
             })),
         };
         onSave(payload);
@@ -191,22 +200,34 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                                 type="number"
                                                 value={ligne.prix_unitaire}
                                                 onChange={(e) => handleLigneChange(ligne.id, 'prix_unitaire', e.target.value)}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) ? 'bg-purple-50 text-purple-700 font-bold border-purple-200' : 'bg-white border-gray-300'}`}
+                                                disabled={ligne.usage_interne}
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${ligne.usage_interne ? 'bg-gray-100 text-gray-400' : ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) ? 'bg-purple-50 text-purple-700 font-bold border-purple-200' : 'bg-white border-gray-300'}`}
                                             />
-                                            {ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) && (
+                                            {!ligne.usage_interne && ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) && (
                                                 <span className="absolute -top-4 right-0 text-[10px] text-purple-400 font-bold line-through">
                                                     {(ligne.prix_unitaire_original || ligne.prix_unitaire).toLocaleString()} Ar
                                                 </span>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="md:col-span-3">
+                                    <div className="md:col-span-2 flex items-center justify-center">
+                                        <label className="flex items-center gap-2 cursor-pointer mt-6">
+                                            <input
+                                                type="checkbox"
+                                                checked={ligne.usage_interne}
+                                                onChange={(e) => handleLigneChange(ligne.id, 'usage_interne', e.target.checked)}
+                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                            />
+                                            <span className="text-xs font-medium text-gray-600">Usage Interne</span>
+                                        </label>
+                                    </div>
+                                    <div className="md:col-span-2">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Sous-total</label>
-                                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 text-right">
-                                            {(ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
+                                        <div className={`px-3 py-2 border border-gray-200 rounded-xl font-bold text-right ${ligne.usage_interne ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-800'}`}>
+                                            {ligne.usage_interne ? '0' : (ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
                                         </div>
                                     </div>
-                                    <div className="md:col-span-1 flex justify-center pb-1">
+                                    <div className="md:col-span-12 flex justify-end pb-1">
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveLigne(ligne.id)}
@@ -295,6 +316,7 @@ const Multiservice = () => {
         const today = new Date().toISOString().split('T')[0];
         const ventesAujourdhui = ventes.filter(v => v.date_creation.startsWith(today));
 
+        // Exclure les ventes avec montant 0 (usage interne) du total vendu
         const totalVendu = ventesAujourdhui.reduce((acc, v) => acc + parseFloat(v.transaction.montant), 0);
         const nombreVentes = ventesAujourdhui.length;
 
@@ -428,7 +450,11 @@ const Multiservice = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(vente.date_creation).toLocaleString('fr-FR')}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{vente.client_nom || 'N/A'}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
-                                            {vente.lignes.map(l => `${l.tarif_service_nom} (x${l.quantite})`).join(', ')}
+                                            {vente.lignes.map(l => (
+                                                <span key={l.id} className={l.usage_interne ? "text-yellow-600 font-medium" : ""}>
+                                                    {l.tarif_service_nom} (x{l.quantite}){l.usage_interne ? " [INTERNE]" : ""}{', '}
+                                                </span>
+                                            ))}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
                                             {vente.transaction.montant.toLocaleString('fr-FR')} Ar

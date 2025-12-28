@@ -328,14 +328,22 @@ class ServicePersonnalise(models.Model):
         blank=True,
         help_text="Détails spécifiques à cette utilisation du service"
     )
+    usage_interne = models.BooleanField(
+        default=False,
+        help_text="Cochez si ce service est pour un usage interne (pas de recette, mais déstockage)"
+    )
 
     def save(self, *args, **kwargs):
         # Stocker le prix original
         if not self.prix_unitaire_original:
             self.prix_unitaire_original = self.tarif_service.prix_unitaire
 
-        # Calculer la remise applicable
-        if not self.prix_unitaire_utilise or self.prix_unitaire_utilise == self.prix_unitaire_original:
+        # Si usage interne, le prix utilisé est 0
+        if self.usage_interne:
+            self.prix_unitaire_utilise = 0
+            self.remise_appliquee = None
+        # Sinon, calculer la remise applicable
+        elif not self.prix_unitaire_utilise or self.prix_unitaire_utilise == self.prix_unitaire_original:
             prix_avec_remise, remise_appliquee = self.calculer_prix_avec_remise()
             self.prix_unitaire_utilise = prix_avec_remise
             self.remise_appliquee = remise_appliquee
@@ -343,6 +351,11 @@ class ServicePersonnalise(models.Model):
         # Calculer et mettre à jour le montant de la transaction
         montant_total = self.quantite * self.prix_unitaire_utilise
         self.transaction.montant = montant_total
+        
+        # Si usage interne, on peut changer le type de transaction ou ajouter une note
+        if self.usage_interne:
+            self.transaction.description = f"[USAGE INTERNE] {self.transaction.description}"
+            
         self.transaction.save()
 
         super().save(*args, **kwargs)
@@ -382,7 +395,8 @@ class ServicePersonnalise(models.Model):
 
     def __str__(self):
         remise_str = f" (remise: {self.pourcentage_remise:.1f}%)" if self.remise_appliquee else ""
-        return f"{self.tarif_service.nom_service} x{self.quantite} - {self.montant_total} Ar{remise_str}"
+        usage_str = " [INTERNE]" if self.usage_interne else ""
+        return f"{self.tarif_service.nom_service} x{self.quantite} - {self.montant_total} Ar{remise_str}{usage_str}"
 
     class Meta:
         verbose_name = "Service personnalisé"
@@ -1050,14 +1064,24 @@ class LigneDeVente(models.Model):
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2, help_text="Prix unitaire au moment de la vente")
     montant_total = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=255, blank=True, help_text="Description additionnelle (ex: format papier)")
+    usage_interne = models.BooleanField(
+        default=False,
+        help_text="Cochez si cette ligne est pour un usage interne (pas de recette, mais déstockage)"
+    )
 
     def save(self, *args, **kwargs):
-        # Calculer le montant total de la ligne
-        self.montant_total = self.quantite * self.prix_unitaire
+        # Si usage interne, le prix unitaire et le montant total sont 0
+        if self.usage_interne:
+            self.prix_unitaire = 0
+            self.montant_total = 0
+        else:
+            # Calculer le montant total de la ligne
+            self.montant_total = self.quantite * self.prix_unitaire
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.tarif_service.nom_service} x {self.quantite}"
+        usage_str = " [INTERNE]" if self.usage_interne else ""
+        return f"{self.tarif_service.nom_service} x {self.quantite}{usage_str}"
 
     class Meta:
         verbose_name = "Ligne de Vente"

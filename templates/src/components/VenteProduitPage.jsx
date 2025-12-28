@@ -45,6 +45,7 @@ const VenteProduitPage = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredProduits = produits.filter(p =>
@@ -71,7 +72,8 @@ const VenteProduitPage = () => {
       const payload = {
         produit: selectedProduit.id,
         quantite: quantite,
-        prix_unitaire: usageInterne ? 0 : totalApresRemise / quantite, // Prix unitaire à 0 si usage interne
+        prix_unitaire: usageInterne ? 0 : totalApresRemise / quantite,
+        usage_interne: usageInterne,
       };
       const result = await venteProduitAPI.create(payload);
       if (result.success) {
@@ -169,15 +171,24 @@ const VenteProduitPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {recentSales.map(sale => (
                     <tr key={sale.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sale.produit_designation}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {sale.produit_designation}
+                        {sale.usage_interne && (
+                          <span className="ml-2 px-2 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded-full font-bold uppercase tracking-wider">Interne</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(sale.transaction.date_transaction).toLocaleString('fr-FR', {
                           hour: '2-digit', minute: '2-digit'
                         })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">{sale.quantite}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        {(sale.quantite * sale.prix_unitaire).toLocaleString('fr-FR')} Ar
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                        {sale.usage_interne ? (
+                          <span className="text-yellow-600">0 Ar</span>
+                        ) : (
+                          <span>{(sale.quantite * sale.prix_unitaire).toLocaleString('fr-FR')} Ar</span>
+                        )}
                       </td>
                     </tr>
                   ))}

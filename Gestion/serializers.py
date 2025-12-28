@@ -185,7 +185,7 @@ class VenteProduitSerializer(serializers.ModelSerializer):
         model = VenteProduit
         fields = [
             'id', 'transaction', 'produit', 'produit_designation',
-            'quantite', 'prix_unitaire', 'montant_total'
+            'quantite', 'prix_unitaire', 'montant_total', 'usage_interne'
         ]
 
     @staticmethod
@@ -209,7 +209,7 @@ class VenteProduitCreateSerializer(serializers.ModelSerializer):
         model = VenteProduit
         fields = [
             'produit', 'quantite', 'prix_unitaire',
-            'transaction'
+            'transaction', 'usage_interne'
         ]
         extra_kwargs = {
             'transaction': {'read_only': True},
@@ -258,7 +258,7 @@ class VenteProduitCreateSerializer(serializers.ModelSerializer):
         transaction = Transaction.objects.create(
             type_transaction='RECETTE',
             montant=validated_data['quantite'] * validated_data['prix_unitaire'],
-            description=f"Vente de {validated_data['produit'].designation}",
+            description=f"{'[USAGE INTERNE] ' if validated_data.get('usage_interne') else ''}Vente de {validated_data['produit'].designation}",
             utilisateur=user,
             categorie_service=CategorieService.objects.get_or_create(
                 nom='VENTE_PRODUIT',
@@ -271,7 +271,8 @@ class VenteProduitCreateSerializer(serializers.ModelSerializer):
             transaction=transaction,
             produit=validated_data['produit'],
             quantite=validated_data['quantite'],
-            prix_unitaire=validated_data['prix_unitaire']
+            prix_unitaire=validated_data['prix_unitaire'],
+            usage_interne=validated_data.get('usage_interne', False)
         )
 
         return vente

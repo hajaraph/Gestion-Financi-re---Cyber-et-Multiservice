@@ -983,6 +983,10 @@ class VenteProduit(models.Model):
         decimal_places=2,
         help_text="Prix unitaire de vente"
     )
+    usage_interne = models.BooleanField(
+        default=False,
+        help_text="Cochez si ce produit est pour un usage interne (pas de recette, mais déstockage)"
+    )
 
     def clean(self):
         """Validation personnalisée"""
@@ -999,8 +1003,16 @@ class VenteProduit(models.Model):
         # Validation avant sauvegarde
         self.clean()
 
+        # Si usage interne, le prix unitaire est 0
+        if self.usage_interne:
+            self.prix_unitaire = 0
+
         # Calcul automatique du montant total
         self.transaction.montant = self.quantite * self.prix_unitaire
+        
+        if self.usage_interne:
+            self.transaction.description = f"[USAGE INTERNE] {self.transaction.description}"
+            
         self.transaction.save()
 
         # Créer un mouvement de stock

@@ -215,15 +215,18 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="md:col-span-2 flex items-center justify-center">
-                                        <label className="flex items-center gap-2 cursor-pointer mt-6">
-                                            <input
-                                                type="checkbox"
-                                                checked={ligne.usage_interne}
-                                                onChange={(e) => handleLigneChange(ligne.id, 'usage_interne', e.target.checked)}
-                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                                            />
-                                            <span className="text-sm font-semibold text-gray-700">Usage Interne</span>
+                                    <div className="md:col-span-2 flex items-end pb-1">
+                                        <label className={`flex items-center gap-2 cursor-pointer p-1.5 border rounded-lg w-full justify-center transition-all ${ligne.usage_interne ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-dashed border-gray-300 hover:border-gray-400'}`}>
+                                            <div className="relative inline-flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={ligne.usage_interne}
+                                                    onChange={(e) => handleLigneChange(ligne.id, 'usage_interne', e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </div>
+                                            <span className={`text-xs font-bold select-none ${ligne.usage_interne ? 'text-blue-700' : 'text-gray-500'}`}>Interne</span>
                                         </label>
                                     </div>
                                     <div className="md:col-span-2">

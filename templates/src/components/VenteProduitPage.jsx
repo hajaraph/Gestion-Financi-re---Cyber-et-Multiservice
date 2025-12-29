@@ -118,7 +118,7 @@ const VenteProduitPage = () => {
         {/* Colonne de sélection des produits */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Produits en Stock</h2>
-          <div className="relative group mb-4">
+          <div className="relative group mb-4 max-w-md">
             <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             <input
               type="text"

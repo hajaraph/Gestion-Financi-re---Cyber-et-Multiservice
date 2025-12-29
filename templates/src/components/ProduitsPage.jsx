@@ -105,7 +105,7 @@ const ProduitsPage = () => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <div className="flex-1 relative group">
+        <div className="flex-1 relative group max-w-md">
           <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
           <input
             type="text"

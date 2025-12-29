@@ -115,6 +115,8 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
     const payload = {
       ...form,
       role: form.role || null, // Envoyer null si pas de rôle sélectionné
+      permissions_supplementaires: form.permissions_supplementaires_ids,
+      permissions_refusees: form.permissions_refusees_ids,
     };
 
     // Supprimer le mot de passe si c'est une mise à jour et qu'il n'a pas été modifié

@@ -429,10 +429,17 @@ class Permission(models.Model):
         ('change_tarif', 'Modifier les tarifs'),
         ('manage_remise', 'Gérer les remises'),
 
-        # Gestion des produits et stocks
-        ('view_produit', 'Voir les produits et stocks'),
-        ('manage_produits', 'Gérer les produits (créer, modifier, supprimer)'),
-        ('manage_stock', 'Gérer les stocks (mouvements, ajustements)'),
+        # Gestion des produits
+        ('view_produit', 'Voir les produits'),
+        ('add_produit', 'Ajouter des produits'),
+        ('change_produit', 'Modifier des produits'),
+        ('delete_produit', 'Supprimer des produits'),
+
+        # Gestion des stocks
+        ('view_stock', 'Voir les stocks'),
+        ('add_stock', 'Ajouter du stock (Entrées/Achats)'),
+        ('change_stock', 'Modifier/Ajuster le stock'),
+        ('delete_stock', 'Supprimer le stock'),
 
         # Rapports et statistiques
         ('view_rapport_journalier', 'Voir rapport journalier'),
@@ -592,7 +599,8 @@ class ProfilUtilisateur(models.Model):
         """Vérifie si l'utilisateur peut travailler à l'heure actuelle"""
         from django.utils import timezone
 
-        maintenant = timezone.now()
+        # Obtenir l'heure actuelle en timezone locale (définie dans settings.TIME_ZONE)
+        maintenant = timezone.localtime(timezone.now())
         jour_semaine = maintenant.weekday() + 1  # Django: 0=Lundi, Python: 1=Lundi
 
         # Vérifier le jour de travail

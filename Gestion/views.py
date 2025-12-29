@@ -203,6 +203,8 @@ def filter_by_date_range(
     return queryset
 
 
+from rest_framework.exceptions import PermissionDenied
+
 class CustomPermission(BasePermission):
     """Classe de permission personnalisée basée sur notre système de permissions"""
 
@@ -220,13 +222,13 @@ class CustomPermission(BasePermission):
 
         # Vérifier si l'utilisateur a un profil
         if not hasattr(request.user, 'profil'):
-            return False
+            raise PermissionDenied("Votre compte utilisateur n'a pas de profil associé.")
 
         profil = request.user.profil
 
         # Vérifier si le profil est actif
         if not profil.actif:
-            return False
+            raise PermissionDenied("Votre profil utilisateur est désactivé.")
 
         # Le rôle Administrateur a tous les droits
         if profil.role and profil.role.nom == 'Administrateur':
@@ -234,14 +236,18 @@ class CustomPermission(BasePermission):
 
         # Vérifier les restrictions temporelles
         if not profil.peut_travailler_maintenant():
-            return False
+            raise PermissionDenied(f"Vous n'êtes pas autorisé à travailler en ce moment (Restriction horaire).")
 
         # Si pas de permission spécifique requise, autoriser
         if not self.required_permission:
             return True
 
         # Vérifier la permission spécifique
-        return profil.a_permission(self.required_permission)
+        if not profil.a_permission(self.required_permission):
+             # Si c'était un 'manage' générique, on peut vouloir être plus précis, mais ici on a la string exacte
+             raise PermissionDenied(f"Vous n'avez pas la permission requise: {self.required_permission}")
+        
+        return True
 
 def permission_required(permission_code):
     """Décorateur pour spécifier la permission requise pour une vue"""
@@ -287,26 +293,39 @@ class PermissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def initialiser_permissions(self, request):
-        """Initialiser les permissions par défaut"""
-        permissions_creees = 0
-
-        for code, nom in Permission.ACTIONS:
+        """Initialiser les permissions par défaut et nettoyer les obsolètes"""
+        permissions_actions = dict(Permission.ACTIONS)
+        active_codes = set(permissions_actions.keys())
+        
+        # 1. Créer ou mettre à jour les permissions existantes
+        created_count = 0
+        updated_count = 0
+        
+        for code, nom in permissions_actions.items():
             module = code.split('_')[1] if '_' in code else 'system'
-            permission, created = Permission.objects.get_or_create(
+            defaults = {
+                'nom': nom,
+                'module': module,
+                'description': f"Permission pour {nom.lower()}",
+                'actif': True
+            }
+            
+            perm, created = Permission.objects.update_or_create(
                 code_permission=code,
-                defaults={
-                    'nom': nom,
-                    'module': module,
-                    'description': f"Permission pour {nom.lower()}",
-                    'actif': True
-                }
+                defaults=defaults
             )
+            
             if created:
-                permissions_creees += 1
+                created_count += 1
+            else:
+                updated_count += 1
+
+        # 2. Désactiver les permissions qui ne sont plus dans le code
+        obsolete_count = Permission.objects.exclude(code_permission__in=active_codes).update(actif=False)
 
         return Response({
-            'message': f'{permissions_creees} permissions créées',
-            'total_permissions': Permission.objects.count()
+            'message': f'Permissions synchronisées: {created_count} créées, {updated_count} mises à jour, {obsolete_count} désactivées (obsolètes)',
+            'total_active': Permission.objects.filter(actif=True).count()
         })
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -484,6 +503,8 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
                 actif=True
             )
             profil.permissions_supplementaires.add(*permissions)
+            # Enlever de la liste des refusées pour éviter les conflits
+            profil.permissions_refusees.remove(*permissions)
 
         # Ajouter permissions refusées
         if retirer_permissions:
@@ -492,6 +513,8 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
                 actif=True
             )
             profil.permissions_refusees.add(*permissions)
+            # Enlever de la liste des supplémentaires pour éviter les conflits
+            profil.permissions_supplementaires.remove(*permissions)
 
         return Response({
             'message': 'Permissions mises à jour',
@@ -1121,7 +1144,13 @@ class ProduitViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve', 'statistiques', 'produits_par_categorie', 'historique_prix', 'mouvements']:
             return [CustomPermission('view_produit')]
-        return [CustomPermission('manage_produits')]
+        elif self.action == 'create':
+            return [CustomPermission('add_produit')]
+        elif self.action in ['update', 'partial_update', 'mettre_a_jour_prix']:
+            return [CustomPermission('change_produit')]
+        elif self.action == 'destroy':
+            return [CustomPermission('delete_produit')]
+        return [CustomPermission('view_produit')]
 
     def get_queryset(self):
         """
@@ -1289,9 +1318,15 @@ class StockViewSet(viewsets.ModelViewSet):
         Instancie et retourne la liste des permissions que cette vue requiert.
         """
         if self.action in ['list', 'retrieve', 'alertes', 'valeurs', 'historique']:
-            return [CustomPermission('view_produit')]
+            return [CustomPermission('view_stock')]
+        elif self.action == 'enregistrer_entree':
+            return [CustomPermission('add_stock')]
+        elif self.action in ['ajuster_stock', 'revaluer_prix_moyen', 'update', 'partial_update']:
+            return [CustomPermission('change_stock')]
+        elif self.action == 'destroy':
+             return [CustomPermission('delete_stock')]
         else:
-            return [CustomPermission('manage_stock')]
+            return [CustomPermission('view_stock')]
 
     def get_queryset(self):
         queryset = super().get_queryset()

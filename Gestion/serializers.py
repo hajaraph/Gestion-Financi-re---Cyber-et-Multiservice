@@ -538,6 +538,25 @@ class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     def get_permissions_effectives(obj):
         return obj.obtenir_toutes_permissions()
 
+    def update(self, instance, validated_data):
+        # Extraire les permissions pour gestion manuelle des conflits
+        perms_supp = validated_data.get('permissions_supplementaires')
+        perms_ref = validated_data.get('permissions_refusees')
+
+        # Mise à jour standard
+        instance = super().update(instance, validated_data)
+
+        # Gestion des conflits : une permission ne peut pas être à la fois supplémentaire et refusée
+        if perms_supp is not None:
+             # Si on ajoute des permissions supplémentaires, on les retire des refusées
+             instance.permissions_refusees.remove(*perms_supp)
+             
+        if perms_ref is not None:
+             # Si on refuse des permissions, on les retire des supplémentaires
+             instance.permissions_supplementaires.remove(*perms_ref)
+             
+        return instance
+
 
 class RoleCreateSerializer(serializers.ModelSerializer):
     permissions_ids = serializers.ListField(

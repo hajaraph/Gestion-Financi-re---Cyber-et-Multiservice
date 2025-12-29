@@ -4,7 +4,7 @@ import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
-import { FaCheckCircle, FaTimesCircle, FaInfoCircle, FaTimes } from 'react-icons/fa'; // Import de FaTimes
+import { FaCheckCircle, FaTimesCircle, FaInfoCircle, FaTimes, FaSearch } from 'react-icons/fa'; // Import de FaTimes et FaSearch
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const emptyForm = {
@@ -280,17 +280,15 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
       </div>
 
       <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-md group">
+          <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
           <input
             type="text"
             placeholder="Rechercher par nom d'utilisateur, email ou rôle..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
           />
-          <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
         </div>
 
         <div className="flex gap-2">

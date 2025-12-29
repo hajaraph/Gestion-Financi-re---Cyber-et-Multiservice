@@ -5,7 +5,7 @@ import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { useStockAlert } from '../context/StockAlertContext';
-import { FaTimes } from 'react-icons/fa'; // Import de l'icône de fermeture
+import { FaTimes, FaSearch } from 'react-icons/fa'; // Import de l'icône de fermeture et de recherche
 
 const VenteProduitPage = () => {
   useDocumentTitle('Vente de Produits');
@@ -118,13 +118,16 @@ const VenteProduitPage = () => {
         {/* Colonne de sélection des produits */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Produits en Stock</h2>
-          <input
-            type="text"
-            placeholder="Rechercher un produit..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg"
-          />
+          <div className="relative group mb-4">
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Rechercher un produit..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+            />
+          </div>
           <div className="max-h-[60vh] overflow-y-auto">
             {loading ? (
               <TableLoader message="Chargement des produits..." />

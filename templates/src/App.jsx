@@ -24,9 +24,9 @@ const AppContent = () => {
 
   // Layout principal avec sidebar
   const MainLayout = ({ children }) => (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+    <div className="h-screen w-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
       <Sidebar user={user} onLogout={logout} />
-      <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto min-h-screen">
+      <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 relative">
         {children}
       </main>
     </div>

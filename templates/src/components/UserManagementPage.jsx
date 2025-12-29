@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { profilAPI, roleAPI, permissionAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
+import TableLoader from './common/TableLoader';
+import EmptyState from './common/EmptyState';
 import { FaCheckCircle, FaTimesCircle, FaInfoCircle, FaTimes } from 'react-icons/fa'; // Import de FaTimes
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
@@ -324,10 +326,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
 
       <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des profils utilisateurs...</p>
-          </div>
+          <TableLoader message="Chargement des profils utilisateurs..." />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -371,12 +370,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
             </table>
 
             {filteredProfils.length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354V4a1 1 0 00-1-1H9a1 1 0 00-1 1v.354M5 10V7a1 1 0 011-1h12a1 1 0 011 1v3m-2 7v.646C17 20.211 16.5 21 15.5 21H8.5C7.5 21 7 20.211 7 19.646V17m-2 2a2 2 0 01-2-2v-4a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2H5z" />
-                </svg>
-                <p>Aucun profil utilisateur trouvé</p>
-              </div>
+              <EmptyState message="Aucun profil utilisateur trouvé" />
             )}
           </div>
         )}

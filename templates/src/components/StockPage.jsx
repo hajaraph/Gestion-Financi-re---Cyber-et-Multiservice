@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
+import TableLoader from './common/TableLoader';
+import EmptyState from './common/EmptyState';
 import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes, FaSearch } from 'react-icons/fa'; // Import de FaTimes
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { useStockAlert } from '../context/StockAlertContext';
@@ -300,10 +302,7 @@ const StockPage = () => {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl shadow-md border border-gray-100">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-500 font-medium">Chargement du stock...</p>
-        </div>
+        <TableLoader message="Chargement du stock..." />
       ) : (
         <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
@@ -319,7 +318,7 @@ const StockPage = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">{filteredStocks.map(renderStockListItem)}</tbody>
           </table>
-          {filteredStocks.length === 0 && <div className="p-8 text-center text-gray-500"><svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg><p>Aucun stock trouvé</p></div>}
+          {filteredStocks.length === 0 && <EmptyState message="Aucun stock trouvé" />}
         </div>
       )}
 

@@ -148,7 +148,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6 space-y-4">
+            <form id="vente-form" onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6 space-y-4">
                 {errors.general && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center">{errors.general}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -289,6 +289,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                         </button>
                         <button
                             type="submit"
+                            form="vente-form"
                             className="flex-1 md:flex-none px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50"
                             disabled={isSubmitting}
                         >

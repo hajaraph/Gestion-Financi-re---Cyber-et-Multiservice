@@ -179,7 +179,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                     <div className="md:col-span-4">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Service</label>
                                         <select
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white transition-all outline-none"
                                             value={ligne.tarif_service_id}
                                             onChange={(e) => handleLigneChange(ligne.id, 'tarif_service_id', e.target.value)}
                                         >
@@ -195,7 +195,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                             placeholder="Qté"
                                             value={ligne.quantite}
                                             onChange={(e) => handleLigneChange(ligne.id, 'quantite', e.target.value)}
-                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.stock?.[ligne.id] ? 'border-red-500' : 'border-gray-300'}`}
+                                            className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none ${errors.stock?.[ligne.id] ? 'border-red-500' : 'border-gray-300'}`}
                                         />
                                     </div>
                                     <div className="md:col-span-2">
@@ -206,7 +206,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                                 value={ligne.prix_unitaire}
                                                 onChange={(e) => handleLigneChange(ligne.id, 'prix_unitaire', e.target.value)}
                                                 disabled={ligne.usage_interne}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${ligne.usage_interne ? 'bg-gray-100 text-gray-400' : ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) ? 'bg-purple-50 text-purple-700 font-bold border-purple-200' : 'bg-white border-gray-300'}`}
+                                                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none ${ligne.usage_interne ? 'bg-gray-100 text-gray-400' : ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) ? 'bg-purple-50 text-purple-700 font-bold border-purple-200' : 'bg-white border-gray-300'}`}
                                             />
                                             {!ligne.usage_interne && ligne.prix_unitaire < (ligne.prix_unitaire_original || ligne.prix_unitaire) && (
                                                 <span className="absolute -top-4 right-0 text-[10px] text-purple-400 font-bold line-through">
@@ -231,7 +231,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Sous-total</label>
-                                        <div className={`px-3 py-2 border border-gray-200 rounded-xl font-bold text-right ${ligne.usage_interne ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-800'}`}>
+                                        <div className={`px-4 py-2 border border-gray-200 rounded-xl font-bold text-right ${ligne.usage_interne ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-800'}`}>
                                             {ligne.usage_interne ? '0' : (ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
                                         </div>
                                     </div>

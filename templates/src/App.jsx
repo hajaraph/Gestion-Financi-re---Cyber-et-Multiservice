@@ -26,7 +26,7 @@ const AppContent = () => {
   const MainLayout = ({ children }) => (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar user={user} onLogout={logout} />
-      <main className="flex-1 p-4 overflow-auto min-h-screen">
+      <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto min-h-screen">
         {children}
       </main>
     </div>

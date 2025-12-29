@@ -285,7 +285,7 @@ const Sidebar = ({ user, onLogout }) => {
         </div>
       </div>
 
-      <nav className="flex-grow mt-8 overflow-y-auto">
+      <nav className="flex-grow mt-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
         <ul className="space-y-2 px-4">
           {menuItems.map((item) => {
             if (item.permission && !hasPermission(item.permission)) return null;

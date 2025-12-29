@@ -37,6 +37,7 @@ from xhtml2pdf import pisa
 
 # Permissions personnalisées pour l'API
 from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 import json
 
 
@@ -1129,12 +1130,18 @@ class TypePapierViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 class ProduitViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour gérer les produits avec suivi de stock et de prix
     """
     queryset = Produit.objects.select_related('categorie', 'unite_mesure', 'unite_achat', 'stock').all()
     serializer_class = ProduitSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         """

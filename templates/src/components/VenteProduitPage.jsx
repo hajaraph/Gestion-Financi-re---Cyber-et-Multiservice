@@ -22,10 +22,22 @@ const VenteProduitPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { refreshAlerts } = useStockAlert();
 
-  const fetchProduits = async () => {
-    const result = await produitAPI.getAll({ en_stock: 'true', actif: 'true' });
-    if (result.success) {
-      setProduits(result.data);
+  const fetchProduits = async (search = '') => {
+    setLoading(true);
+    try {
+      const result = await produitAPI.getAll({
+        en_stock: 'true',
+        actif: 'true',
+        search: search,
+        page_size: 100
+      });
+
+      if (result.success) {
+        const data = result.data.results || result.data || [];
+        setProduits(data);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,23 +48,21 @@ const VenteProduitPage = () => {
     }
   };
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([fetchProduits(), fetchRecentSales()]);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => {
+      fetchProduits(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchRecentSales();
   }, []);
 
-  const filteredProduits = produits.filter(p =>
-    p.designation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // filteredProduits n'est plus nécessaire car le filtrage est fait côté serveur
+  // On utilise directement 'produits'
 
   const openConfirmModal = (produit) => {
     setSelectedProduit(produit);
@@ -131,8 +141,8 @@ const VenteProduitPage = () => {
           <div className="max-h-[60vh] overflow-y-auto">
             {loading ? (
               <TableLoader message="Chargement des produits..." />
-            ) : filteredProduits.length > 0 ? (
-              filteredProduits.map(p => (
+            ) : produits.length > 0 ? (
+              produits.map(p => (
                 <div
                   key={p.id}
                   onClick={() => openConfirmModal(p)}

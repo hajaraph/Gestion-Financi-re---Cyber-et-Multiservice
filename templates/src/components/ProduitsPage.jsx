@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { produitAPI, categorieProduitAPI, uniteMesureAPI } from '../services/api';
-import { useCrud } from '../hooks/useCrud';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import Pagination from './common/Pagination';
 import { FaPlus, FaSearch } from 'react-icons/fa';
 
 const emptyForm = {
@@ -21,53 +21,119 @@ const emptyForm = {
 
 const ProduitsPage = () => {
   useDocumentTitle('Gestion des Produits');
-  const [search, setSearch] = useState('');
 
-  const loadDependencies = useCallback(async () => {
-    const [categoriesResult, unitesResult] = await Promise.all([
-      categorieProduitAPI.getAll(),
-      uniteMesureAPI.getAll(),
-    ]);
-    return {
-      categories: categoriesResult.success ? categoriesResult.data : [],
-      unites: unitesResult.success ? unitesResult.data : [],
-    };
+  // États pour les données et la pagination
+  const [produits, setProduits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [itemsPerPage] = useState(20); // Correspond au page_size du backend
+
+  // États pour les dépendances (catégories, unités)
+  const [dependencies, setDependencies] = useState({ categories: [], unites: [] });
+
+  // États pour le CRUD
+  const [notification, setNotification] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toDelete, setToDelete] = useState(null);
+
+  // Gestion des notifications
+  const notify = useCallback((message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   }, []);
 
-  const {
-    items: produits,
-    dependencies,
-    loading,
-    notification,
-    showModal,
-    isSubmitting,
-    errors,
-    editing,
-    form,
-    showDeleteModal,
-    toDelete,
-    load,
-    openCreate,
-    openEdit,
-    onSubmit,
-    requestDelete,
-    confirmDelete,
-    setForm,
-    setShowModal,
-    setShowDeleteModal,
-  } = useCrud(produitAPI, emptyForm, loadDependencies);
+  // Chargement des données
+  const loadProduits = useCallback(async (page = 1, searchQuery = '') => {
+    setLoading(true);
+    try {
+      const params = {
+        page: page,
+        search: searchQuery
+      };
+      const result = await produitAPI.getAll(params);
 
+      if (result.success) {
+        // Support du format paginé
+        if (result.data.results) {
+          setProduits(result.data.results);
+          setTotalItems(result.data.count);
+        } else {
+          // Fallback si l'API retourne un tableau direct (cas non paginé ou erreur config)
+          setProduits(result.data);
+          setTotalItems(result.data.length);
+        }
+      } else {
+        notify('Erreur lors du chargement des produits.', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      notify('Erreur de connexion serveur.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [notify]);
+
+  // Chargement des dépendances
+  const loadDependencies = useCallback(async () => {
+    try {
+      const [categoriesResult, unitesResult] = await Promise.all([
+        categorieProduitAPI.getAll(),
+        uniteMesureAPI.getAll(),
+      ]);
+      setDependencies({
+        categories: categoriesResult.success ? categoriesResult.data : [],
+        unites: unitesResult.success ? unitesResult.data : [],
+      });
+    } catch (error) {
+      console.error("Erreur chargement dépendances", error);
+    }
+  }, []);
+
+  // Effet initial
   useEffect(() => {
-    load();
-  }, [load]);
+    loadDependencies();
+    loadProduits(1, '');
+  }, [loadDependencies, loadProduits]);
 
-  const filtered = produits.filter(p =>
-    p.designation?.toLowerCase().includes(search.toLowerCase()) ||
-    p.reference?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Gestion de la recherche avec Debounce manuel via useEffect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (search !== '') {
+        setCurrentPage(1); // Reset page quand on cherche
+        loadProduits(1, search);
+      } else {
+        loadProduits(currentPage, ''); // Recharger la page courante si recherche vide
+      }
+    }, 500);
 
-  const handleOpenEdit = (prod) => {
-    const formValues = {
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]); // On exclue loadProduits pour éviter boucle infinie si mal mémoïsé (mais ici c'est bon)
+
+  // Gestion du changement de page
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    loadProduits(page, search);
+  };
+
+  // CRUD Handlers
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setErrors({});
+    setShowModal(true);
+  };
+
+  const openEdit = (prod) => {
+    setEditing(prod);
+    setForm({
       designation: prod.designation || '',
       categorie: prod.categorie || '',
       unite_mesure: prod.unite_mesure || '',
@@ -76,18 +142,78 @@ const ProduitsPage = () => {
       actif: prod.actif,
       unite_achat: prod.unite_achat || '',
       quantite_par_unite_achat: prod.quantite_par_unite_achat || 1,
-    };
-    openEdit(prod, formValues);
+    });
+    setErrors({});
+    setShowModal(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
+
     const payload = {
       ...form,
       prix_vente: form.prix_vente || 0,
       unite_achat: form.unite_achat || null,
     };
-    onSubmit(e, payload);
+
+    try {
+      const result = editing
+        ? await produitAPI.update(editing.id, payload)
+        : await produitAPI.create(payload);
+
+      if (result.success) {
+        setShowModal(false);
+        notify(editing ? 'Produit modifié !' : 'Produit créé !');
+        loadProduits(currentPage, search);
+      } else {
+        const err = result.error;
+        if (err && typeof err === 'object') {
+          setErrors(err);
+        } else {
+          setErrors({ general: err || 'Une erreur est survenue.' });
+        }
+        notify('Veuillez corriger les erreurs.', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      notify('Erreur inattendue.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const requestDelete = (prod) => {
+    setToDelete(prod);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    try {
+      const result = await produitAPI.delete(toDelete.id);
+      if (result.success) {
+        notify('Produit supprimé.');
+        loadProduits(currentPage, search);
+      } else {
+        if (result.statusCode === 409) {
+          notify(result.error?.detail || 'Produit utilisé, suppression impossible.', 'warning');
+        } else {
+          notify(result.error?.detail || 'Erreur lors de la suppression.', 'error');
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      notify('Erreur lors de la suppression.', 'error');
+    } finally {
+      setShowDeleteModal(false);
+      setToDelete(null);
+    }
+  };
+
+  // Calcul du nombre total de pages
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   return (
     <div className="p-6 relative">
@@ -126,55 +252,67 @@ const ProduitsPage = () => {
       {loading ? (
         <TableLoader message="Chargement des produits..." />
       ) : (
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Désignation</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix vente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.reference}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{p.designation}</div>
-                    {p.description && <div className="text-sm text-gray-500">{p.description}</div>}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.unite_mesure_symbole || p.unite_mesure}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{new Intl.NumberFormat('fr-FR').format(p.prix_vente || 0)} Ar</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${p.actif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {p.actif ? 'Actif' : 'Inactif'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleOpenEdit(p)} className="text-blue-600 hover:text-blue-900" title="Modifier le produit">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button onClick={() => requestDelete(p)} className="text-red-600 hover:text-red-900" title="Supprimer le produit">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col h-full">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Désignation</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix vente</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {produits.map((p) => (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.reference}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{p.designation}</div>
+                      {p.description && <div className="text-sm text-gray-500 truncate max-w-xs">{p.description}</div>}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.unite_mesure_symbole || p.unite_mesure}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{new Intl.NumberFormat('fr-FR').format(p.prix_vente || 0)} Ar</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${p.actif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {p.actif ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => openEdit(p)} className="text-blue-600 hover:text-blue-900" title="Modifier le produit">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button onClick={() => requestDelete(p)} className="text-red-600 hover:text-red-900" title="Supprimer le produit">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          {filtered.length === 0 && (
+          {produits.length === 0 && (
             <EmptyState message="Aucun produit trouvé" />
           )}
+
+          <div className="px-6 border-t border-gray-100">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+            />
+          </div>
         </div>
       )}
 
@@ -190,7 +328,7 @@ const ProduitsPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
               {errors.general && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
                   <span className="text-red-600 text-sm">{errors.general}</span>

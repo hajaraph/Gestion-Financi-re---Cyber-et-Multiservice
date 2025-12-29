@@ -324,10 +324,10 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-        {loading ? (
-          <TableLoader message="Chargement des profils utilisateurs..." />
-        ) : (
+      {loading ? (
+        <TableLoader message="Chargement des profils utilisateurs..." />
+      ) : (
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -373,8 +373,8 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
               <EmptyState message="Aucun profil utilisateur trouvé" />
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">

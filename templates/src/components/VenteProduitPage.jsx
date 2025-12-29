@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { produitAPI, venteProduitAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
+import TableLoader from './common/TableLoader';
+import EmptyState from './common/EmptyState';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { useStockAlert } from '../context/StockAlertContext';
 import { FaTimes } from 'react-icons/fa'; // Import de l'icône de fermeture
@@ -94,11 +96,7 @@ const VenteProduitPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const EmptyState = ({ message }) => (
-    <div className="text-center text-gray-500 py-8">
-      <p>{message}</p>
-    </div>
-  );
+
 
   return (
     <div className="p-6 w-full">
@@ -129,7 +127,7 @@ const VenteProduitPage = () => {
           />
           <div className="max-h-[60vh] overflow-y-auto">
             {loading ? (
-              <p>Chargement...</p>
+              <TableLoader message="Chargement des produits..." />
             ) : filteredProduits.length > 0 ? (
               filteredProduits.map(p => (
                 <div
@@ -159,7 +157,7 @@ const VenteProduitPage = () => {
           <h2 className="text-xl font-semibold mb-4">Ventes du Jour</h2>
           <div className="max-h-[70vh] overflow-y-auto">
             {loading ? (
-              <p>Chargement...</p>
+              <TableLoader message="Chargement de l'historique..." />
             ) : recentSales.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">

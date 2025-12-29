@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
+import TableLoader from './common/TableLoader';
+import EmptyState from './common/EmptyState';
 import { FaPlus, FaTrash, FaSave, FaBoxOpen, FaPrint, FaSearch, FaTimes } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
@@ -437,13 +439,10 @@ const Multiservice = () => {
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow overflow-hidden">
-                {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                        <p className="text-gray-600">Chargement des ventes...</p>
-                    </div>
-                ) : (
+            {loading ? (
+                <TableLoader message="Chargement des ventes..." />
+            ) : (
+                <div className="bg-white rounded-2xl shadow overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -480,16 +479,11 @@ const Multiservice = () => {
                             </tbody>
                         </table>
                         {filteredVentes.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">
-                                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                <p>Aucune vente trouvée</p>
-                            </div>
+                            <EmptyState message="Aucune vente trouvée" />
                         )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">

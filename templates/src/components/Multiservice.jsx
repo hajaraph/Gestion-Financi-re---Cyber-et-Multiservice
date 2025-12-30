@@ -322,7 +322,7 @@ const Multiservice = () => {
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(20);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
     const [totalItems, setTotalItems] = useState(0);
 
     const notify = useCallback((message, type = 'success') => {
@@ -531,6 +531,10 @@ const Multiservice = () => {
                             totalItems={totalItems}
                             itemsPerPage={itemsPerPage}
                             onPageChange={onPageChange}
+                            onPerPageChange={(value) => {
+                                setItemsPerPage(value);
+                                setCurrentPage(1);
+                            }}
                         />
                     </div>
                 </div>

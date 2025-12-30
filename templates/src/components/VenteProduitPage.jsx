@@ -27,7 +27,7 @@ const VenteProduitPage = () => {
 
   // Pagination states for Sales History
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Moins d'items pour le POS
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Moins d'items pour le POS
   const [totalItems, setTotalItems] = useState(0);
 
   const fetchProduits = useCallback(async (search = '') => {
@@ -260,6 +260,10 @@ const VenteProduitPage = () => {
                 totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 onPageChange={(page) => setCurrentPage(page)}
+                onPerPageChange={(value) => {
+                  setItemsPerPage(value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           </div>

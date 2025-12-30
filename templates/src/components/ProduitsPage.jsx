@@ -28,7 +28,8 @@ const ProduitsPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [itemsPerPage] = useState(20); // Correspond au page_size du backend
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [itemsPerPage, setItemsPerPage] = useState(20); // Correspond au page_size du backend
 
   // États pour les dépendances (catégories, unités)
   const [dependencies, setDependencies] = useState({ categories: [], unites: [] });
@@ -102,26 +103,21 @@ const ProduitsPage = () => {
     loadProduits(1, '');
   }, [loadDependencies, loadProduits]);
 
-  // Gestion de la recherche avec Debounce manuel via useEffect
+  // Handle debounced search update
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (search !== '') {
-        setCurrentPage(1); // Reset page quand on cherche
-        loadProduits(1, search);
-      } else {
-        loadProduits(currentPage, ''); // Recharger la page courante si recherche vide
-      }
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page when search changes
     }, 500);
-
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]); // On exclue loadProduits pour éviter boucle infinie si mal mémoïsé (mais ici c'est bon)
+  }, [search]);
 
-  // Gestion du changement de page
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    loadProduits(page, search);
-  };
+  // Re-load data when page or debounced search changes
+  useEffect(() => {
+    loadProduits(currentPage, debouncedSearch);
+  }, [loadProduits, currentPage, debouncedSearch]);
+
+  // Gestion du changement de page (handled by useEffect)
 
   // CRUD Handlers
   const openCreate = () => {
@@ -212,8 +208,7 @@ const ProduitsPage = () => {
     }
   };
 
-  // Calcul du nombre total de pages
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
 
   return (
     <div className="p-6 relative">
@@ -307,10 +302,13 @@ const ProduitsPage = () => {
           <div className="px-6 border-t border-gray-100">
             <Pagination
               currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
               totalItems={totalItems}
               itemsPerPage={itemsPerPage}
+              onPageChange={(page) => setCurrentPage(page)}
+              onPerPageChange={(value) => {
+                setItemsPerPage(value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>

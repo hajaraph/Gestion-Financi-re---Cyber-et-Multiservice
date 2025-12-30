@@ -1738,6 +1738,7 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
 
 class VenteGroupeViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les ventes groupées."""
+    queryset = VenteGroupee.objects.all()
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):

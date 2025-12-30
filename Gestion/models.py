@@ -809,6 +809,16 @@ class Stock(models.Model):
     # Historisation
     history = HistoricalRecords()
 
+    @property
+    def valeur_stock_achat(self):
+        """Valeur totale du stock au prix d'achat moyen"""
+        return self.quantite_actuelle * self.prix_achat_moyen
+
+    @property
+    def valeur_stock_vente(self):
+        """Valeur totale du stock au prix de vente actuel du produit"""
+        return self.quantite_actuelle * self.produit.prix_vente
+
     def save(self, *args, **kwargs):
         # Mise à jour automatique de l'état du stock
         if self.quantite_actuelle <= 0:

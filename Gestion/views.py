@@ -1520,11 +1520,20 @@ class StockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Récupérer les statistiques globales du stock"""
-        stocks = Stock.objects.filter(produit__actif=True)
+        # On utilise select_related pour éviter le N+1 lors du calcul de valeur_stock_vente
+        stocks = Stock.objects.filter(produit__actif=True).select_related('produit')
         
-        total_valeur_achat = sum(s.valeur_stock_achat for s in stocks)
-        total_valeur_vente = sum(s.valeur_stock_vente for s in stocks)
+        # Calcul des totaux par agrégation pour de meilleures performances
+        stats_data = stocks.aggregate(
+            total_achat=Sum(F('quantite_actuelle') * F('prix_achat_moyen')),
+            total_vente=Sum(F('quantite_actuelle') * F('produit__prix_vente'))
+        )
+        
+        total_valeur_achat = stats_data['total_achat'] or 0
+        total_valeur_vente = stats_data['total_vente'] or 0
+        
         ruptures = stocks.filter(quantite_actuelle__lte=0).count()
+        # On utilise F() pour comparer deux champs dans la même ligne
         reappro = stocks.filter(quantite_actuelle__gt=0, quantite_actuelle__lte=F('quantite_minimale')).count()
 
         return Response({

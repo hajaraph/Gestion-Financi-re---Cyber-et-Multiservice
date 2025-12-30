@@ -684,13 +684,13 @@ class DepenseViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        queryset = Depense.objects.all().order_by('-date_depense')
+        queryset = Depense.objects.select_related('transaction').all().order_by('-transaction__date_transaction')
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(description__icontains=search) |
-                Q(categorie__icontains=search) |
-                Q(montant__icontains=search)
+                Q(transaction__description__icontains=search) |
+                Q(categorie_depense__icontains=search) |
+                Q(fournisseur__icontains=search)
             )
         return queryset
 

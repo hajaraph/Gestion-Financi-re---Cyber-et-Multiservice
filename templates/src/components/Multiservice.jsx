@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
@@ -324,7 +324,12 @@ const Multiservice = () => {
     const [itemsPerPage] = useState(20);
     const [totalItems, setTotalItems] = useState(0);
 
-    const loadData = async (page, query = '') => {
+    const notify = useCallback((message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 4000);
+    }, []);
+
+    const loadData = useCallback(async (page, query = '') => {
         setLoading(true);
         try {
             const result = await venteGroupeeAPI.getAll({
@@ -344,30 +349,29 @@ const Multiservice = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [itemsPerPage]);
 
-    const loadTarifs = async () => {
+    const loadTarifs = useCallback(async () => {
         // Pour le formulaire, on a besoin de tous les tarifs actifs
         // On demande une grande page_size pour être sûr d'avoir tout
         const result = await tarifAPI.getAll({ actif: true, page_size: 200 });
         if (result.success) {
             setTarifs(result.data.results || result.data);
         }
-    };
+    }, []);
 
-    const loadStats = async () => {
+    const loadStats = useCallback(async () => {
         const result = await venteGroupeeAPI.getStats();
         if (result.success) {
             setStats(result.data);
         }
-    };
+    }, []);
 
     useEffect(() => {
         loadData(currentPage, searchTerm);
         loadTarifs();
         loadStats();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loadData, loadTarifs, loadStats, currentPage, searchTerm]);
 
     // Debounced search
     useEffect(() => {
@@ -376,13 +380,7 @@ const Multiservice = () => {
             loadData(1, searchTerm);
         }, 500);
         return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm]);
-
-    const notify = (message, type = 'success') => {
-        setNotification({ message, type });
-        setTimeout(() => setNotification(null), 4000);
-    };
+    }, [searchTerm, loadData]);
 
     const handleSave = async (payload) => {
         setIsSubmitting(true);

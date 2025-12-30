@@ -55,19 +55,10 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
     return user?.permissions?.includes(permissionCode);
   };
 
-  useEffect(() => {
-    loadProfils(1, '');
-    loadMetadata();
-  }, [loadProfils, loadMetadata]);
-
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page on search
-      loadProfils(1, search);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search, loadProfils]);
+  const notify = useCallback((message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
 
   const loadProfils = useCallback(async (page, searchQuery = '') => {
     setLoading(true);
@@ -100,13 +91,19 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
     if (permissionsResult.success) setPermissions(permissionsResult.data);
   }, []);
 
+  useEffect(() => {
+    loadProfils(1, '');
+    loadMetadata();
+  }, [loadProfils, loadMetadata]);
 
-
-
-  const notify = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page on search
+      loadProfils(1, search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search, loadProfils]);
 
   const openCreate = () => {
     setEditing(null);

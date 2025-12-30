@@ -54,19 +54,10 @@ const TarifsPage = () => {
     { value: 'unité', label: 'Unité' },
   ];
 
-  useEffect(() => {
-    loadData(1, '');
-    loadProduits();
-  }, [loadData, loadProduits]);
-
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1);
-      loadData(1, searchTerm);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, loadData]);
+  const showNotification = useCallback((message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
 
   const loadData = useCallback(async (page, searchQuery = '') => {
     setLoading(true);
@@ -93,7 +84,7 @@ const TarifsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [itemsPerPage]);
+  }, [itemsPerPage, showNotification]);
 
   const loadProduits = useCallback(async () => {
     const produitsResult = await produitAPI.getAll({ actif: 'true' });
@@ -103,10 +94,19 @@ const TarifsPage = () => {
     }
   }, []);
 
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
+  useEffect(() => {
+    loadData(1, '');
+    loadProduits();
+  }, [loadData, loadProduits]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      loadData(1, searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, loadData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

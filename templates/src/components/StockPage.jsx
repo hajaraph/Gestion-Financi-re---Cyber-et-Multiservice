@@ -3,9 +3,10 @@ import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
-import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes, FaSearch } from 'react-icons/fa'; // Import de FaTimes
+import { FaPlus, FaBalanceScale, FaDollarSign, FaHistory, FaTimes, FaSearch } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { useStockAlert } from '../context/StockAlertContext';
+import Pagination from './common/Pagination';
 
 const StockPage = () => {
   useDocumentTitle('Gestion des Stocks');
@@ -14,6 +15,19 @@ const StockPage = () => {
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
   const { refreshAlerts } = useStockAlert();
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Stats state
+  const [stats, setStats] = useState({
+    totalValeurAchat: 0,
+    totalValeurVente: 0,
+    ruptures: 0,
+    reappro: 0
+  });
 
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [isSubmittingEntry, setIsSubmittingEntry] = useState(false);
@@ -50,21 +64,44 @@ const StockPage = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
-    loadStocks();
+    loadStocks(currentPage, search);
+    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page on search
+      loadStocks(1, search);
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const notify = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const loadStocks = async () => {
+  const loadStocks = async (page, searchQuery = '') => {
     setLoading(true);
     try {
-      const result = await stockAPI.getAll();
+      const result = await stockAPI.getAll({
+        page: page,
+        page_size: itemsPerPage,
+        search: searchQuery
+      });
+
       if (result.success) {
-        setStocks(result.data);
+        if (result.data.results) {
+          setStocks(result.data.results);
+          setTotalItems(result.data.count);
+        } else {
+          // Fallback for non-paginated response (if API changes haven't propagated or dev environment issues)
+          setStocks(result.data);
+          setTotalItems(result.data.length);
+        }
       } else {
         const errorMessage = typeof result.error === 'object' && result.error.detail
           ? result.error.detail
@@ -76,20 +113,14 @@ const StockPage = () => {
     }
   };
 
-  const filteredStocks = stocks.filter(stock => {
-    const designation = stock.nom_produit?.toLowerCase() || '';
-    const reference = stock.code_produit?.toLowerCase() || '';
-    const searchTerm = search.toLowerCase();
-    return designation.includes(searchTerm) || reference.includes(searchTerm);
-  });
+  const loadStats = async () => {
+    const result = await stockAPI.getStats();
+    if (result.success) {
+      setStats(result.data);
+    }
+  };
 
-  const stats = stocks.reduce((acc, stock) => {
-    acc.totalValeurAchat += Number(stock.valeur_stock_achat || 0);
-    acc.totalValeurVente += Number(stock.valeur_stock_vente || 0);
-    if (parseFloat(stock.quantite_actuelle) <= 0) acc.ruptures++;
-    if (parseFloat(stock.quantite_actuelle) > 0 && parseFloat(stock.quantite_actuelle) <= parseFloat(stock.quantite_minimale)) acc.reappro++;
-    return acc;
-  }, { totalValeurAchat: 0, totalValeurVente: 0, ruptures: 0, reappro: 0 });
+  // filteredStocks and client-side stats calculation removed
 
   const openHistoryModal = async (stock) => {
     setCurrentStock(stock);
@@ -121,8 +152,9 @@ const StockPage = () => {
       const payload = { produit_id: currentStock.produit_id, ...entryForm };
       const result = await stockAPI.recordEntry(payload);
       if (result.success) {
-        await loadStocks();
+        await loadStocks(currentPage, search);
         await refreshAlerts();
+        loadStats();
         setShowEntryModal(false);
         notify('Entrée de stock enregistrée avec succès');
       } else {
@@ -155,8 +187,9 @@ const StockPage = () => {
       };
       const result = await stockAPI.adjustStock(currentStock.id, payload);
       if (result.success) {
-        await loadStocks();
+        await loadStocks(currentPage, search);
         await refreshAlerts();
+        loadStats();
         setShowAdjustmentModal(false);
         notify('Ajustement de stock enregistré avec succès');
       } else {
@@ -188,8 +221,9 @@ const StockPage = () => {
       };
       const result = await stockAPI.revalueStockPrice(currentStock.id, payload);
       if (result.success) {
-        await loadStocks();
+        await loadStocks(currentPage, search);
         await refreshAlerts();
+        loadStats();
         setShowRevaluationModal(false);
         notify('Prix d\'achat moyen réévalué avec succès');
       } else {
@@ -294,7 +328,7 @@ const StockPage = () => {
           />
         </div>
         <button
-          onClick={loadStocks}
+          onClick={() => loadStocks(currentPage, search)}
           className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
         >
           Actualiser
@@ -316,9 +350,16 @@ const StockPage = () => {
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">{filteredStocks.map(renderStockListItem)}</tbody>
+            <tbody className="bg-white divide-y divide-gray-200">{stocks.map(renderStockListItem)}</tbody>
           </table>
-          {filteredStocks.length === 0 && <EmptyState message="Aucun stock trouvé" />}
+          {stocks.length === 0 && <EmptyState message="Aucun stock trouvé" />}
+
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       )}
 

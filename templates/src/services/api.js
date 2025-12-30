@@ -138,6 +138,7 @@ export const stockAPI = {
   revalueStockPrice: async (id, payload) => handleApiResponse(() => apiClient.post(`/api/stocks/${id}/revaluer_prix_moyen/`, payload)),
   delete: async (id) => handleApiResponse(() => apiClient.delete(`/api/stocks/${id}/`)),
   getStockAlerts: async () => handleApiResponse(() => apiClient.get('/api/stock-alerts/')),
+  getStats: async () => handleApiResponse(() => apiClient.get('/api/stocks/stats/')),
 };
 
 // Services pour les produits (liste pour listes déroulantes)
@@ -164,6 +165,7 @@ export const venteProduitAPI = {
 export const venteGroupeeAPI = {
   getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/ventes-groupees/', { params })),
   create: async (payload) => handleApiResponse(() => apiClient.post('/api/ventes-groupees/', payload)),
+  getStats: async () => handleApiResponse(() => apiClient.get('/api/ventes-groupees/stats/')),
   printInvoice: async (id) => handleApiResponse(() => apiClient.get(`/api/ventes-groupees/${id}/imprimer_facture/`, { responseType: 'blob' })),
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
@@ -302,6 +302,8 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
     );
 };
 
+import Pagination from './common/Pagination';
+
 const Multiservice = () => {
     useDocumentTitle('Multiservices');
     const [ventes, setVentes] = useState([]);
@@ -311,47 +313,71 @@ const Multiservice = () => {
     const [showModal, setShowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [stats, setStats] = useState({
+        totalVendu: 0,
+        nombreVentes: 0,
+        serviceTop: 'N/A'
+    });
 
-    const loadData = async () => {
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(20);
+    const [totalItems, setTotalItems] = useState(0);
+
+    const loadData = async (page, query = '') => {
         setLoading(true);
         try {
-            const [ventesResult, tarifsResult] = await Promise.all([
-                venteGroupeeAPI.getAll(),
-                tarifAPI.getAll({ actif: true })
-            ]);
-            if (ventesResult.success) setVentes(ventesResult.data);
-            if (tarifsResult.success) setTarifs(tarifsResult.data);
+            const result = await venteGroupeeAPI.getAll({
+                page: page,
+                page_size: itemsPerPage,
+                search: query
+            });
+            if (result.success) {
+                if (result.data.results) {
+                    setVentes(result.data.results);
+                    setTotalItems(result.data.count);
+                } else {
+                    setVentes(result.data);
+                    setTotalItems(result.data.length);
+                }
+            }
         } finally {
             setLoading(false);
         }
     };
 
+    const loadTarifs = async () => {
+        // Pour le formulaire, on a besoin de tous les tarifs actifs
+        // On demande une grande page_size pour être sûr d'avoir tout
+        const result = await tarifAPI.getAll({ actif: true, page_size: 200 });
+        if (result.success) {
+            setTarifs(result.data.results || result.data);
+        }
+    };
+
+    const loadStats = async () => {
+        const result = await venteGroupeeAPI.getStats();
+        if (result.success) {
+            setStats(result.data);
+        }
+    };
+
     useEffect(() => {
-        loadData();
+        loadData(currentPage, searchTerm);
+        loadTarifs();
+        loadStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const dashboardStats = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        const ventesAujourdhui = ventes.filter(v => v.date_creation.startsWith(today));
-
-        const totalVendu = ventesAujourdhui.reduce((acc, v) => acc + parseFloat(v.transaction.montant), 0);
-        const nombreVentes = ventesAujourdhui.length;
-
-        const servicesLesPlusVendus = ventesAujourdhui
-            .flatMap(v => v.lignes)
-            .reduce((acc, ligne) => {
-                acc[ligne.tarif_service_nom] = (acc[ligne.tarif_service_nom] || 0) + parseFloat(ligne.quantite);
-                return acc;
-            }, {});
-
-        const serviceTop = Object.entries(servicesLesPlusVendus).sort((a, b) => b[1] - a[1])[0];
-
-        return {
-            totalVendu,
-            nombreVentes,
-            serviceTop: serviceTop ? `${serviceTop[0]} (x${serviceTop[1]})` : 'N/A',
-        };
-    }, [ventes]);
+    // Debounced search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCurrentPage(1);
+            loadData(1, searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
 
     const notify = (message, type = 'success') => {
         setNotification({ message, type });
@@ -364,7 +390,10 @@ const Multiservice = () => {
         if (response.success) {
             notify('Vente enregistrée avec succès!');
             setShowModal(false);
-            await loadData();
+            await Promise.all([
+                loadData(currentPage, searchTerm),
+                loadStats()
+            ]);
         } else {
             notify(response.error?.detail || response.error || 'Une erreur est survenue.', 'error');
         }
@@ -389,12 +418,10 @@ const Multiservice = () => {
         }
     };
 
-    const filteredVentes = ventes.filter(vente => {
-        const term = searchTerm.toLowerCase();
-        const clientMatch = vente.client_nom?.toLowerCase().includes(term);
-        const serviceMatch = vente.lignes.some(l => l.tarif_service_nom.toLowerCase().includes(term));
-        return clientMatch || serviceMatch;
-    });
+    const onPageChange = (page) => {
+        setCurrentPage(page);
+        loadData(page, searchTerm);
+    };
 
     return (
         <div className="p-6">
@@ -415,15 +442,15 @@ const Multiservice = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Total Vendu (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold text-green-600">{dashboardStats.totalVendu.toLocaleString('fr-FR')} Ar</div>
+                    <div className="text-2xl font-bold text-green-600">{stats.totalVendu.toLocaleString('fr-FR')} Ar</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Nombre de Ventes (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold">{dashboardStats.nombreVentes}</div>
+                    <div className="text-2xl font-bold">{stats.nombreVentes}</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl shadow">
                     <div className="text-gray-500 text-sm">Top Service (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold truncate">{dashboardStats.serviceTop}</div>
+                    <div className="text-2xl font-bold truncate">{stats.serviceTop}</div>
                 </div>
             </div>
 
@@ -438,15 +465,24 @@ const Multiservice = () => {
                         className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                     />
                 </div>
-                <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2">
-                    <FaPlus /> Nouvelle Vente
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => { loadData(currentPage, searchTerm); loadStats(); }}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold"
+                        title="Actualiser"
+                    >
+                        Actualiser
+                    </button>
+                    <button onClick={() => setShowModal(true)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold">
+                        <FaPlus /> Nouvelle Vente
+                    </button>
+                </div>
             </div>
 
             {loading ? (
                 <TableLoader message="Chargement des ventes..." />
             ) : (
-                <div className="bg-white rounded-2xl shadow overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -459,8 +495,8 @@ const Multiservice = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredVentes.map(vente => (
-                                    <tr key={vente.id}>
+                                {ventes.map(vente => (
+                                    <tr key={vente.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(vente.date_creation).toLocaleString('fr-FR')}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{vente.client_nom || 'N/A'}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
@@ -474,7 +510,7 @@ const Multiservice = () => {
                                             {vente.transaction.montant.toLocaleString('fr-FR')} Ar
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handlePrint(vente.id)} className="text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100">
+                                            <button onClick={() => handlePrint(vente.id)} className="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 transition-colors">
                                                 <FaPrint />
                                             </button>
                                         </td>
@@ -482,9 +518,16 @@ const Multiservice = () => {
                                 ))}
                             </tbody>
                         </table>
-                        {filteredVentes.length === 0 && (
+                        {ventes.length === 0 && (
                             <EmptyState message="Aucune vente trouvée" />
                         )}
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={onPageChange}
+                        />
                     </div>
                 </div>
             )}

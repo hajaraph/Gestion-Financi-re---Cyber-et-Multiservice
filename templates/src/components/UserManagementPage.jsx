@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { profilAPI, roleAPI, permissionAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon';
@@ -6,6 +6,8 @@ import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
 import { FaCheckCircle, FaTimesCircle, FaInfoCircle, FaTimes, FaSearch } from 'react-icons/fa'; // Import de FaTimes et FaSearch
 import useDocumentTitle from '../hooks/useDocumentTitle';
+
+import Pagination from './common/Pagination';
 
 const emptyForm = {
   username: '',
@@ -40,6 +42,11 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toDelete, setToDelete] = useState(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Fonction pour vérifier si l'utilisateur a une permission spécifique
   const hasPermission = (permissionCode) => {
     if (user?.is_superuser) {
@@ -49,31 +56,52 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    loadProfils(1, '');
+    loadMetadata();
+  }, [loadProfils, loadMetadata]);
 
-  const load = async () => {
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page on search
+      loadProfils(1, search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search, loadProfils]);
+
+  const loadProfils = useCallback(async (page, searchQuery = '') => {
     setLoading(true);
     try {
-      const [profilsResult, rolesResult, permissionsResult] = await Promise.all([
-        profilAPI.getAll(),
-        roleAPI.getAll(),
-        permissionAPI.getAll(),
-      ]);
-
-      if (profilsResult.success) setProfils(profilsResult.data);
-      if (rolesResult.success) setRoles(rolesResult.data);
-      if (permissionsResult.success) setPermissions(permissionsResult.data);
+      const result = await profilAPI.getAll({
+        page: page,
+        page_size: itemsPerPage,
+        search: searchQuery
+      });
+      if (result.success) {
+        if (result.data.results) {
+          setProfils(result.data.results);
+          setTotalItems(result.data.count);
+        } else {
+          setProfils(result.data);
+          setTotalItems(result.data.length);
+        }
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemsPerPage]);
 
-  const filteredProfils = profils.filter(p =>
-    p.username?.toLowerCase().includes(search.toLowerCase()) ||
-    p.email?.toLowerCase().includes(search.toLowerCase()) ||
-    p.role_nom?.toLowerCase().includes(search.toLowerCase())
-  );
+  const loadMetadata = useCallback(async () => {
+    const [rolesResult, permissionsResult] = await Promise.all([
+      roleAPI.getAll(),
+      permissionAPI.getAll(),
+    ]);
+    if (rolesResult.success) setRoles(rolesResult.data);
+    if (permissionsResult.success) setPermissions(permissionsResult.data);
+  }, []);
+
+
+
 
   const notify = (message, type = 'success') => {
     setNotification({ message, type });
@@ -132,7 +160,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
         : await profilAPI.create(payload);
 
       if (result.success) {
-        await load();
+        await loadProfils(currentPage, search);
         setShowModal(false);
         notify(editing ? 'Profil utilisateur modifié avec succès' : 'Utilisateur créé avec succès');
       } else {
@@ -155,7 +183,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
     try {
       const result = await profilAPI.delete(toDelete.id);
       if (result.success) {
-        await load();
+        await loadProfils(currentPage, search);
         notify('Profil utilisateur supprimé');
       } else {
         notify(result.error?.detail || 'Erreur lors de la suppression.', 'error');
@@ -240,7 +268,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
       const result = await permissionAPI.initializePermissions();
       if (result.success) {
         notify(result.data.message);
-        load(); // Recharger les permissions et profils
+        loadMetadata(); // Recharger les permissions
       } else {
         notify(result.error?.detail || "Erreur lors de l'initialisation des permissions.", 'error');
       }
@@ -252,7 +280,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
       const result = await roleAPI.createDefaultRoles();
       if (result.success) {
         notify(result.data.message);
-        load(); // Recharger les rôles et profils
+        loadMetadata(); // Recharger les rôles
       } else {
         notify(result.error?.detail || "Erreur lors de la création des rôles par défaut.", 'error');
       }
@@ -338,7 +366,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProfils.map((p) => (
+                {profils.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.username}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.email}</td>
@@ -367,9 +395,19 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
               </tbody>
             </table>
 
-            {filteredProfils.length === 0 && (
+            {profils.length === 0 && (
               <EmptyState message="Aucun profil utilisateur trouvé" />
             )}
+
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                loadProfils(page, search);
+              }}
+            />
           </div>
         </div>
       )}

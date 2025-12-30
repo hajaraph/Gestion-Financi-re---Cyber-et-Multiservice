@@ -7,6 +7,8 @@ import EmptyState from './common/EmptyState';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes } from 'react-icons/fa'; // Import de FaTimes
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
+import Pagination from './common/Pagination';
+
 const DepensesPage = () => {
     useDocumentTitle('Gestion des Dépenses');
     const [depenses, setDepenses] = useState([]);
@@ -20,6 +22,11 @@ const DepensesPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [toDelete, setToDelete] = useState(null);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [totalItems, setTotalItems] = useState(0);
+
     const emptyForm = {
         description: '',
         montant: '',
@@ -29,32 +36,54 @@ const DepensesPage = () => {
     };
     const [form, setForm] = useState(emptyForm);
 
-    const loadInitialData = async () => {
+    const loadData = async (page, searchQuery = '') => {
         setLoading(true);
         try {
-            const [depensesResult, categoriesResult] = await Promise.all([
-                depenseAPI.getAll(),
-                depenseAPI.getCategories()
-            ]);
-            if (depensesResult.success) {
-                setDepenses(depensesResult.data);
+            const result = await depenseAPI.getAll({
+                page: page,
+                page_size: itemsPerPage,
+                search: searchQuery
+            });
+
+            if (result.success) {
+                if (result.data.results) {
+                    setDepenses(result.data.results);
+                    setTotalItems(result.data.count);
+                } else {
+                    setDepenses(result.data);
+                    setTotalItems(result.data.length);
+                }
             } else {
                 notify('Erreur de chargement des dépenses.', 'error');
-            }
-            if (categoriesResult.success) {
-                // Tri côté client pour s'assurer que la liste est toujours alphabétique
-                const sortedCategories = categoriesResult.data.sort((a, b) => a.label.localeCompare(b.label));
-                setCategories(sortedCategories);
             }
         } finally {
             setLoading(false);
         }
     };
 
+    const loadCategories = async () => {
+        const categoriesResult = await depenseAPI.getCategories();
+        if (categoriesResult.success) {
+            const sortedCategories = categoriesResult.data.sort((a, b) => a.label.localeCompare(b.label));
+            setCategories(sortedCategories);
+        }
+    };
+
     useEffect(() => {
-        loadInitialData();
+        loadData(currentPage, searchTerm);
+        loadCategories();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Debounced search effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCurrentPage(1);
+            loadData(1, searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
 
     const notify = (message, type = 'success') => {
         setNotification({ message, type });
@@ -64,7 +93,6 @@ const DepensesPage = () => {
     const openCreateModal = () => {
         setEditingDepense(null);
         setForm(emptyForm);
-        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
         setShowModal(true);
     };
 
@@ -77,14 +105,12 @@ const DepensesPage = () => {
             fournisseur: depense.fournisseur || '',
             numero_facture: depense.numero_facture || '',
         });
-        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        // setErrors({}); // No 'errors' state defined, removing this line to fix lint
 
         const payload = {
             transaction: {
@@ -103,7 +129,7 @@ const DepensesPage = () => {
         if (result.success) {
             notify(editingDepense ? 'Dépense modifiée!' : 'Dépense ajoutée!', 'success');
             setShowModal(false);
-            await loadInitialData();
+            loadData(currentPage, searchTerm);
         } else {
             notify(result.error?.general || "Une erreur est survenue lors de l'enregistrement.", "error");
         }
@@ -120,18 +146,13 @@ const DepensesPage = () => {
         const result = await depenseAPI.delete(toDelete.id);
         if (result.success) {
             notify('Dépense supprimée.', 'success');
-            await loadInitialData();
+            loadData(currentPage, searchTerm);
         } else {
             notify(result.error || 'Erreur lors de la suppression.', 'error');
         }
         setShowDeleteModal(false);
         setToDelete(null);
     };
-
-    const filteredDepenses = depenses.filter(d =>
-        d.transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (d.fournisseur && d.fournisseur.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
 
     return (
         <div className="p-6">
@@ -187,7 +208,7 @@ const DepensesPage = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredDepenses.map(d => (
+                            {depenses.map(d => (
                                 <tr key={d.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 font-medium text-gray-900">{d.transaction.description}</td>
@@ -201,9 +222,16 @@ const DepensesPage = () => {
                             ))}
                         </tbody>
                     </table>
-                    {filteredDepenses.length === 0 && (
+                    {depenses.length === 0 && (
                         <EmptyState message="Aucune dépense trouvée" />
                     )}
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={(page) => setCurrentPage(page)}
+                    />
                 </div>
             )}
 

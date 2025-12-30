@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { tarifAPI, produitAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import PaliersRemiseModal from './PaliersRemiseModal';
@@ -7,6 +7,8 @@ import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
 import { FaPlus, FaTrash, FaEdit, FaPercentage, FaDownload, FaSearch } from 'react-icons/fa';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+
+import Pagination from './common/Pagination';
 
 const TarifsPage = () => {
   useDocumentTitle('Gestion des Tarifs');
@@ -32,6 +34,11 @@ const TarifsPage = () => {
     consommations_write: []
   });
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+
   const categories = [
     { value: 'INTERNET', label: 'Services Internet' },
     { value: 'MULTISERVICE', label: 'Multiservices' },
@@ -48,24 +55,53 @@ const TarifsPage = () => {
   ];
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    loadData(1, '');
+    loadProduits();
+  }, [loadData, loadProduits]);
 
-  const loadInitialData = async () => {
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      loadData(1, searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, loadData]);
+
+  const loadData = useCallback(async (page, searchQuery = '') => {
     setLoading(true);
     try {
-      const [tarifsResult, produitsResult] = await Promise.all([
-        tarifAPI.getAll(),
-        produitAPI.getAll({ actif: 'true' })
-      ]);
-      if (tarifsResult.success) setTarifs(tarifsResult.data);
-      if (produitsResult.success) setProduits(produitsResult.data);
+      const result = await tarifAPI.getAll({
+        page: page,
+        page_size: itemsPerPage,
+        search: searchQuery
+      });
+      if (result.success) {
+        if (result.data.results) {
+          setTarifs(result.data.results);
+          setTotalItems(result.data.count);
+        } else {
+          setTarifs(result.data);
+          setTotalItems(result.data.length);
+        }
+      } else {
+        showNotification('Erreur de chargement des tarifs', 'error');
+      }
     } catch (error) {
       console.error('Erreur de chargement:', error);
+      showNotification('Erreur de chargement', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemsPerPage]);
+
+  const loadProduits = useCallback(async () => {
+    const produitsResult = await produitAPI.getAll({ actif: 'true' });
+    if (produitsResult.success) {
+      const data = produitsResult.data.results || produitsResult.data;
+      setProduits(data);
+    }
+  }, []);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -81,7 +117,7 @@ const TarifsPage = () => {
         : await tarifAPI.create(formData);
 
       if (result.success) {
-        await loadInitialData();
+        await loadData(currentPage, searchTerm);
         setShowModal(false);
         showNotification(editingTarif ? 'Tarif modifié!' : 'Tarif créé!', 'success');
       } else {
@@ -160,7 +196,7 @@ const TarifsPage = () => {
     try {
       const result = await tarifAPI.delete(tarifToDelete.id);
       if (result.success) {
-        await loadInitialData();
+        await loadData(currentPage, searchTerm);
         showNotification('Tarif supprimé avec succès!', 'success');
       } else {
         // Gérer spécifiquement le cas du ProtectedError (code 409)
@@ -197,7 +233,7 @@ const TarifsPage = () => {
         const result = await tarifAPI.importTarifsDefaut();
         if (result.success) {
           showNotification(result.data.message);
-          await loadInitialData();
+          await loadData(currentPage, searchTerm);
         } else {
           showNotification(result.error || "Erreur lors de l'importation.", 'error');
         }
@@ -206,10 +242,6 @@ const TarifsPage = () => {
       }
     }
   };
-
-  const filteredTarifs = tarifs.filter(tarif =>
-    tarif.nom_service.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="p-6">
@@ -268,7 +300,7 @@ const TarifsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTarifs.map(tarif => (
+              {tarifs.map(tarif => (
                 <tr key={tarif.id}>
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{tarif.nom_service}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">
@@ -303,9 +335,19 @@ const TarifsPage = () => {
               ))}
             </tbody>
           </table>
-          {filteredTarifs.length === 0 && (
+          {tarifs.length === 0 && (
             <EmptyState message="Aucun tarif trouvé" />
           )}
+
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              loadData(page, searchTerm);
+            }}
+          />
         </div>
       )}
 

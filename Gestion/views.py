@@ -14,7 +14,7 @@ from .models import (
     Depense, TypePapier,
     TarifService, ServicePersonnalise, PalierRemise, Permission, Role, ProfilUtilisateur,
     Stock, MouvementStock, Produit, CategorieProduit, UniteMesure, VenteProduit,
-    VenteGroupee, ParametreEntreprise
+    VenteGroupee, ParametreEntreprise, LigneDeVente
 )
 from .serializers import (
     CategorieServiceSerializer, TransactionSerializer, DepenseSerializer,
@@ -432,6 +432,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les profils utilisateurs"""
     queryset = ProfilUtilisateur.objects.all()
+    pagination_class = StandardResultsSetPagination
     permission_classes = [lambda: CustomPermission('manage_users')]
 
     def get_serializer_class(self):
@@ -452,7 +453,20 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
         if actif is not None:
             queryset = queryset.filter(actif=actif.lower() == 'true')
 
-        return queryset
+        # Recherche
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(user__username__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(telephone__icontains=search) |
+                Q(adresse__icontains=search)
+            )
+        
+        return queryset.order_by('user__username')
+
+
 
     def perform_destroy(self, instance):
         """
@@ -589,9 +603,9 @@ class CategorieServiceViewSet(viewsets.ModelViewSet):
     serializer_class = CategorieServiceSerializer
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer toutes les transactions"""
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         queryset = Transaction.objects.all()
@@ -661,6 +675,18 @@ class TransactionViewSet(viewsets.ModelViewSet):
 class DepenseViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les dépenses"""
     queryset = Depense.objects.all()
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = Depense.objects.all().order_by('-date_depense')
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(description__icontains=search) |
+                Q(categorie__icontains=search) |
+                Q(montant__icontains=search)
+            )
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -698,6 +724,7 @@ class TarifServiceViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les tarifs des services"""
     queryset = TarifService.objects.all()
     serializer_class = TarifServiceSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         queryset = TarifService.objects.all()
@@ -717,7 +744,7 @@ class TarifServiceViewSet(viewsets.ModelViewSet):
         if search:
             queryset = queryset.filter(nom_service__icontains=search)
 
-        return queryset
+        return queryset.order_by('categorie', 'nom_service')
 
     @action(detail=False, methods=['get'])
     def par_categorie(self, request):
@@ -1319,12 +1346,13 @@ class StockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les stocks de produits"""
     queryset = Stock.objects.select_related('produit__unite_mesure', 'produit__unite_achat', 'produit__categorie').all()
     serializer_class = StockSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         """
         Instancie et retourne la liste des permissions que cette vue requiert.
         """
-        if self.action in ['list', 'retrieve', 'alertes', 'valeurs', 'historique']:
+        if self.action in ['list', 'retrieve', 'alertes', 'valeurs', 'historique', 'stats']:
             return [CustomPermission('view_stock')]
         elif self.action == 'enregistrer_entree':
             return [CustomPermission('add_stock')]
@@ -1490,6 +1518,23 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Récupérer les statistiques globales du stock"""
+        stocks = Stock.objects.filter(produit__actif=True)
+        
+        total_valeur_achat = sum(s.valeur_stock_achat for s in stocks)
+        total_valeur_vente = sum(s.valeur_stock_vente for s in stocks)
+        ruptures = stocks.filter(quantite_actuelle__lte=0).count()
+        reappro = stocks.filter(quantite_actuelle__gt=0, quantite_actuelle__lte=F('quantite_minimale')).count()
+
+        return Response({
+            'totalValeurAchat': total_valeur_achat,
+            'totalValeurVente': total_valeur_vente,
+            'ruptures': ruptures,
+            'reappro': reappro
+        })
+
+    @action(detail=False, methods=['get'])
     def alertes(self, request):
         """Récupérer les alertes de stock (ruptures et réapprovisionnements)"""
         ruptures = Stock.objects.filter(quantite_actuelle__lte=0, produit__actif=True)
@@ -1540,6 +1585,7 @@ class StockViewSet(viewsets.ModelViewSet):
 class MouvementStockViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les mouvements de stock"""
     queryset = MouvementStock.objects.all()
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -1663,6 +1709,7 @@ class UniteMesureViewSet(viewsets.ModelViewSet):
 class VenteProduitViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer la vente directe de produits."""
     queryset = VenteProduit.objects.all()
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -1670,7 +1717,16 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
         return VenteProduitSerializer
 
     def get_queryset(self):
-        return VenteProduit.objects.select_related('produit', 'transaction', 'produit__stock', 'produit__unite_mesure').order_by('-transaction__date_transaction')
+        queryset = VenteProduit.objects.select_related('produit', 'transaction', 'produit__stock', 'produit__unite_mesure').order_by('-transaction__date_transaction')
+        
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(produit__designation__icontains=search) |
+                Q(transaction__description__icontains=search)
+            )
+            
+        return queryset
 
     @action(detail=False, methods=['get'])
     def ventes_du_jour(self, request):
@@ -1682,12 +1738,50 @@ class VenteProduitViewSet(viewsets.ModelViewSet):
 
 class VenteGroupeViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les ventes groupées."""
-    queryset = VenteGroupee.objects.all().prefetch_related('lignes__tarif_service', 'transaction__utilisateur')
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = VenteGroupee.objects.all().prefetch_related('lignes__tarif_service', 'transaction__utilisateur').order_by('-date_creation')
+        
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(client_nom__icontains=search) |
+                Q(lignes__tarif_service__nom_service__icontains=search)
+            ).distinct()
+            
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
             return VenteGroupeeCreateSerializer
         return VenteGroupeeSerializer
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Statistiques des ventes pour le dashboard (aujourd'hui)"""
+        today = timezone.now().date()
+        ventes_du_jour = VenteGroupee.objects.filter(date_creation__date=today)
+        
+        total_vendu = ventes_du_jour.aggregate(total=Sum('transaction__montant'))['total'] or 0
+        nombre_ventes = ventes_du_jour.count()
+        
+        # Service le plus vendu
+        top_service = LigneDeVente.objects.filter(vente__date_creation__date=today)\
+            .values('tarif_service__nom_service')\
+            .annotate(total_qty=Sum('quantite'))\
+            .order_by('-total_qty')\
+            .first()
+            
+        service_top_label = 'N/A'
+        if top_service:
+            service_top_label = f"{top_service['tarif_service__nom_service']} (x{top_service['total_qty']})"
+            
+        return Response({
+            'totalVendu': total_vendu,
+            'nombreVentes': nombre_ventes,
+            'serviceTop': service_top_label
+        })
 
     @action(detail=True, methods=['get'])
     def imprimer_facture(self, request, **kwargs):

@@ -34,6 +34,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -91,19 +92,24 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
     if (permissionsResult.success) setPermissions(permissionsResult.data);
   }, []);
 
+  // Initial load for metadata
   useEffect(() => {
-    loadProfils(1, '');
     loadMetadata();
-  }, [loadProfils, loadMetadata]);
+  }, [loadMetadata]);
 
-  // Debounced search effect
+  // Handle debounced search update
   useEffect(() => {
     const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page on search
-      loadProfils(1, search);
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page when search changes
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, loadProfils]);
+  }, [search]);
+
+  // Re-load data when page or debounced search changes
+  useEffect(() => {
+    loadProfils(currentPage, debouncedSearch);
+  }, [loadProfils, currentPage, debouncedSearch]);
 
   const openCreate = () => {
     setEditing(null);
@@ -400,10 +406,7 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
               currentPage={currentPage}
               totalItems={totalItems}
               itemsPerPage={itemsPerPage}
-              onPageChange={(page) => {
-                setCurrentPage(page);
-                loadProfils(page, search);
-              }}
+              onPageChange={(page) => setCurrentPage(page)}
             />
           </div>
         </div>

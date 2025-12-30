@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { stockAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
@@ -14,11 +14,12 @@ const StockPage = () => {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { refreshAlerts } = useStockAlert();
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
 
   // Stats state
@@ -63,28 +64,7 @@ const StockPage = () => {
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  useEffect(() => {
-    loadStocks(currentPage, search);
-    loadStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page on search
-      loadStocks(1, search);
-    }, 500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
-  const notify = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const loadStocks = async (page, searchQuery = '') => {
+  const loadStocks = useCallback(async (page, searchQuery = '') => {
     setLoading(true);
     try {
       const result = await stockAPI.getAll({
@@ -98,27 +78,47 @@ const StockPage = () => {
           setStocks(result.data.results);
           setTotalItems(result.data.count);
         } else {
-          // Fallback for non-paginated response (if API changes haven't propagated or dev environment issues)
           setStocks(result.data);
           setTotalItems(result.data.length);
         }
-      } else {
-        const errorMessage = typeof result.error === 'object' && result.error.detail
-          ? result.error.detail
-          : result.error || 'Erreur de chargement';
-        notify(errorMessage, 'error');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemsPerPage]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     const result = await stockAPI.getStats();
     if (result.success) {
       setStats(result.data);
     }
+  }, []);
+
+  // Initial load for stats
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Handle debounced search update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Re-load data when page or debounced search changes
+  useEffect(() => {
+    loadStocks(currentPage, debouncedSearch);
+  }, [loadStocks, currentPage, debouncedSearch]);
+
+  const notify = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   };
+
+
 
   // filteredStocks and client-side stats calculation removed
 

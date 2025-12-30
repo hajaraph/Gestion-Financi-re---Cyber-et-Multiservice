@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { depenseAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
@@ -19,12 +19,13 @@ const DepensesPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingDepense, setEditingDepense] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [toDelete, setToDelete] = useState(null);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [itemsPerPage] = useState(20);
     const [totalItems, setTotalItems] = useState(0);
 
     const emptyForm = {
@@ -36,7 +37,12 @@ const DepensesPage = () => {
     };
     const [form, setForm] = useState(emptyForm);
 
-    const loadData = async (page, searchQuery = '') => {
+    const notify = useCallback((message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 4000);
+    }, []);
+
+    const loadData = useCallback(async (page, searchQuery = '') => {
         setLoading(true);
         try {
             const result = await depenseAPI.getAll({
@@ -59,36 +65,36 @@ const DepensesPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [itemsPerPage, notify]);
 
-    const loadCategories = async () => {
+    const loadCategories = useCallback(async () => {
         const categoriesResult = await depenseAPI.getCategories();
         if (categoriesResult.success) {
             const sortedCategories = categoriesResult.data.sort((a, b) => a.label.localeCompare(b.label));
             setCategories(sortedCategories);
         }
-    };
-
-    useEffect(() => {
-        loadData(currentPage, searchTerm);
-        loadCategories();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Debounced search effect
+    // Initial load for categories
+    useEffect(() => {
+        loadCategories();
+    }, [loadCategories]);
+
+    // Handle debounced search update
     useEffect(() => {
         const timer = setTimeout(() => {
-            setCurrentPage(1);
-            loadData(1, searchTerm);
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(1); // Reset to first page when search changes
         }, 500);
         return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchTerm]);
 
-    const notify = (message, type = 'success') => {
-        setNotification({ message, type });
-        setTimeout(() => setNotification(null), 4000);
-    };
+    // Re-load data when page or debounced search changes
+    useEffect(() => {
+        loadData(currentPage, debouncedSearch);
+    }, [loadData, currentPage, debouncedSearch]);
+
+
 
     const openCreateModal = () => {
         setEditingDepense(null);

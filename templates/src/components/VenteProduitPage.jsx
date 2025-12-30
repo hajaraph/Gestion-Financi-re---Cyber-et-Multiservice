@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { produitAPI, venteProduitAPI } from '../services/api';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
 import TableLoader from './common/TableLoader';
@@ -30,7 +30,7 @@ const VenteProduitPage = () => {
   const [itemsPerPage] = useState(10); // Moins d'items pour le POS
   const [totalItems, setTotalItems] = useState(0);
 
-  const fetchProduits = async (search = '') => {
+  const fetchProduits = useCallback(async (search = '') => {
     setLoading(true);
     try {
       const result = await produitAPI.getAll({
@@ -47,9 +47,9 @@ const VenteProduitPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchRecentSales = async (page = 1) => {
+  const fetchRecentSales = useCallback(async (page = 1) => {
     setLoadingSales(true);
     try {
       // On utilise l'endpoint paginé par défaut au lieu de ventes_du_jour pour avoir la pagination
@@ -70,19 +70,18 @@ const VenteProduitPage = () => {
     } finally {
       setLoadingSales(false);
     }
-  };
+  }, [itemsPerPage]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProduits(searchTerm);
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchProduits]);
 
   useEffect(() => {
     fetchRecentSales(currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, fetchRecentSales]);
 
   const openConfirmModal = (produit) => {
     setSelectedProduit(produit);
@@ -132,9 +131,7 @@ const VenteProduitPage = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const onPageChange = (page) => {
-    setCurrentPage(page);
-  };
+
 
   return (
     <div className="p-6 w-full">
@@ -262,8 +259,7 @@ const VenteProduitPage = () => {
                 currentPage={currentPage}
                 totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
-                onPageChange={onPageChange}
-                compact={true}
+                onPageChange={(page) => setCurrentPage(page)}
               />
             </div>
           </div>

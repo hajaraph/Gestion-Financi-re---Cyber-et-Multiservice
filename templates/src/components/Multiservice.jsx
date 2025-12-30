@@ -313,6 +313,7 @@ const Multiservice = () => {
     const [showModal, setShowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [stats, setStats] = useState({
         totalVendu: 0,
         nombreVentes: 0,
@@ -367,20 +368,25 @@ const Multiservice = () => {
         }
     }, []);
 
+    // Initial load for metadata (tarifs)
     useEffect(() => {
-        loadData(currentPage, searchTerm);
         loadTarifs();
         loadStats();
-    }, [loadData, loadTarifs, loadStats, currentPage, searchTerm]);
+    }, [loadTarifs, loadStats]);
 
-    // Debounced search
+    // Handle debounced search update
     useEffect(() => {
         const timer = setTimeout(() => {
-            setCurrentPage(1);
-            loadData(1, searchTerm);
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(1); // Reset to first page when search changes
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, loadData]);
+    }, [searchTerm]);
+
+    // Re-load data when page or debounced search changes
+    useEffect(() => {
+        loadData(currentPage, debouncedSearch);
+    }, [loadData, currentPage, debouncedSearch]);
 
     const handleSave = async (payload) => {
         setIsSubmitting(true);

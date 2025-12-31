@@ -14,7 +14,9 @@ import ParametresPage from './components/ParametresPage';
 import UserManagementPage from './components/UserManagementPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { StockAlertProvider } from './context/StockAlertContext';
-import PageWrapper from './components/common/PageWrapper'; // Import du PageWrapper
+import PageWrapper from './components/common/PageWrapper';
+import { FaBars } from 'react-icons/fa'; // Ajout de l'icône hamburger
+import { useState } from 'react';
 
 // Composants de pages (à créer)
 const CategoriesPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Catégories Services</h1><p>Types de services</p></div>;
@@ -23,14 +25,39 @@ const AppContent = () => {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
 
   // Layout principal avec sidebar
-  const MainLayout = ({ children }) => (
-    <div className="h-screen w-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
-      <Sidebar user={user} onLogout={logout} />
-      <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 relative">
-        {children}
-      </main>
-    </div>
-  );
+  const MainLayout = ({ children }) => {
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    return (
+      <div className="h-screen w-full bg-gray-50 dark:bg-gray-900 flex flex-col lg:flex-row overflow-hidden">
+        {/* Header Mobile */}
+        <header className="lg:hidden bg-gray-900 text-white p-4 flex items-center justify-between shadow-md z-30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <FaBars className="w-6 h-6 text-blue-400" />
+            </button>
+            <h1 className="text-xl font-bold text-blue-400">Cyber Café</h1>
+          </div>
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {user?.username?.charAt(0).toUpperCase() || 'U'}
+          </div>
+        </header>
+
+        <Sidebar
+          user={user}
+          onLogout={logout}
+          isMobileOpen={isMobileOpen}
+          setIsMobileOpen={setIsMobileOpen}
+        />
+        <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 relative h-full">
+          {children}
+        </main>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (

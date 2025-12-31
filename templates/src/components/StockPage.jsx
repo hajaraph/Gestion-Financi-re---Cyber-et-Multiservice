@@ -292,27 +292,27 @@ const StockPage = () => {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Gestion des Stocks</h1>
-        <p className="text-gray-600">Suivez et gérez les quantités de vos produits.</p>
+      <div className="mb-6 lg:mb-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Gestion des Stocks</h1>
+        <p className="text-gray-600 text-sm sm:text-base">Suivez et gérez les quantités de vos produits.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="text-gray-500 text-sm font-medium mb-1">Valeur d'achat</div>
-          <div className="text-2xl font-bold text-gray-900">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Valeur d'achat</div>
+          <div className="text-2xl font-black text-gray-900">{(stats.totalValeurAchat || 0).toLocaleString('fr-FR')} Ar</div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="text-gray-500 text-sm font-medium mb-1">Valeur de vente</div>
-          <div className="text-2xl font-bold text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div>
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Valeur de vente</div>
+          <div className="text-2xl font-black text-green-600">{(stats.totalValeurVente || 0).toLocaleString('fr-FR')} Ar</div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="text-gray-500 text-sm font-medium mb-1">En rupture</div>
-          <div className="text-2xl font-bold text-red-600">{stats.ruptures}</div>
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">En rupture</div>
+          <div className="text-2xl font-black text-red-600">{stats.ruptures}</div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="text-gray-500 text-sm font-medium mb-1">À réapprovisionner</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.reappro}</div>
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">À réapprovisionner</div>
+          <div className="text-2xl font-black text-yellow-600">{stats.reappro}</div>
         </div>
       </div>
 
@@ -339,19 +339,58 @@ const StockPage = () => {
         <TableLoader message="Chargement du stock..." />
       ) : (
         <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">État</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qté Actuelle</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qté Minimale</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valeur Vente</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">{stocks.map(renderStockListItem)}</tbody>
-          </table>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">État</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qté Actuelle</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qté Minimale</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valeur Vente</th>
+                  <th className="px-6 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">{stocks.map(renderStockListItem)}</tbody>
+            </table>
+          </div>
+
+          {/* Version Mobile */}
+          <div className="sm:hidden divide-y divide-gray-100">
+            {stocks.map(stock => (
+              <div key={stock.id} className="p-4 active:bg-gray-50 transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-bold text-gray-900">{stock.nom_produit}</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">{stock.code_produit}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${stock.etat === 'EN_STOCK' ? 'bg-green-100 text-green-700' :
+                    stock.etat === 'LIMITE' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                    {stock.etat?.replace('_', ' ')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 bg-gray-50 p-3 rounded-xl">
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase font-bold">Quantité</p>
+                    <p className="text-sm font-black text-gray-900">{parseFloat(stock.quantite_actuelle).toLocaleString()} {stock.unite_mesure_produit}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-500 uppercase font-bold">Valeur</p>
+                    <p className="text-sm font-black text-blue-600">{(stock.valeur_stock_vente || 0).toLocaleString('fr-FR')} Ar</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-around items-center border-t border-gray-50 pt-3">
+                  <button onClick={() => openHistoryModal(stock)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors"><FaHistory size={18} /></button>
+                  <button onClick={() => openEntryModal(stock)} className="p-2 text-blue-500 hover:text-blue-600 transition-colors"><FaPlus size={18} /></button>
+                  <button onClick={() => openAdjustmentModal(stock)} className="p-2 text-purple-500 hover:text-purple-600 transition-colors"><FaBalanceScale size={18} /></button>
+                  <button onClick={() => openRevaluationModal(stock)} className="p-2 text-green-500 hover:text-green-600 transition-colors"><FaDollarSign size={18} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
           {stocks.length === 0 && <EmptyState message="Aucun stock trouvé" />}
 
           <Pagination

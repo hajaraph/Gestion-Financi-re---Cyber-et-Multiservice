@@ -27,9 +27,24 @@ const handleApiResponse = async (request) => {
     const response = await request();
     return { success: true, data: response.data };
   } catch (error) {
+    const errorData = error.response?.data;
+    let errorMessage = 'Une erreur est survenue.';
+
+    if (errorData) {
+      if (typeof errorData === 'string') errorMessage = errorData;
+      else if (errorData.error) errorMessage = errorData.error;
+      else if (errorData.detail) errorMessage = errorData.detail;
+      else if (typeof errorData === 'object') {
+        const firstKey = Object.keys(errorData)[0];
+        const firstError = errorData[firstKey];
+        errorMessage = Array.isArray(firstError) ? `${firstKey}: ${firstError[0]}` : `${firstKey}: ${firstError}`;
+      }
+    }
+
     return {
       success: false,
-      error: error.response?.data?.error || error.response?.data?.detail || 'Une erreur est survenue.',
+      error: errorMessage,
+      errorData: errorData,
       statusCode: error.response?.status,
     };
   }
@@ -66,7 +81,7 @@ export const roleAPI = {
 export const profilAPI = {
   getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/profils/', { params })),
   create: async (data) => handleApiResponse(() => apiClient.post('/api/profils/', data)),
-  update: async (id, data) => handleApiResponse(() => apiClient.put(`/api/profils/${id}/`, data)),
+  update: async (id, data) => handleApiResponse(() => apiClient.patch(`/api/profils/${id}/`, data)),
   delete: async (id) => handleApiResponse(() => apiClient.delete(`/api/profils/${id}/`)),
   getMyProfile: async () => handleApiResponse(() => apiClient.get('/api/profils/mon_profil/')),
 };
@@ -158,6 +173,7 @@ export const uniteMesureAPI = {
 };
 
 export const venteProduitAPI = {
+  getAll: async (params = {}) => handleApiResponse(() => apiClient.get('/api/vente-produits/', { params })),
   create: async (payload) => handleApiResponse(() => apiClient.post('/api/vente-produits/', payload)),
   getTodaysSales: async () => handleApiResponse(() => apiClient.get('/api/vente-produits/ventes_du_jour/')),
 };

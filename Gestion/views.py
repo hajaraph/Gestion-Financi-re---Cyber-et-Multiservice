@@ -104,41 +104,108 @@ def dashboard_stats(request):
         **{'date_transaction__date__gte': start_date, 'date_transaction__date__lte': end_date}
     ).aggregate(total=Sum('montant'))['total'] or 0
 
-    # Sessions Internet
-    sessions_internet = ServicePersonnalise.objects.filter(
+    # Sessions Internet (Services + Lignes de vente groupée)
+    sessions_sp = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
         transaction__date_transaction__date__lte=end_date,
         tarif_service__categorie='INTERNET'
     ).count()
 
-    # Documents imprimés
-    impressions = ServicePersonnalise.objects.filter(
+    sessions_lv = LigneDeVente.objects.filter(
+        vente__transaction__date_transaction__date__gte=start_date,
+        vente__transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='INTERNET'
+    ).count()
+
+    sessions_internet = sessions_sp + sessions_lv
+
+    # Documents imprimés (Impressions + Photocopies de Services et Lignes de vente)
+    # Impressions individuelles
+    impressions_sp = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
         transaction__date_transaction__date__lte=end_date,
         tarif_service__categorie='IMPRESSION'
     ).aggregate(total=Sum('quantite'))['total'] or 0
 
-    photocopies = ServicePersonnalise.objects.filter(
+    # Impressions groupées
+    impressions_lv = LigneDeVente.objects.filter(
+        vente__transaction__date_transaction__date__gte=start_date,
+        vente__transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='IMPRESSION'
+    ).aggregate(total=Sum('quantite'))['total'] or 0
+
+    # Photocopies individuelles
+    photocopies_sp = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
         transaction__date_transaction__date__lte=end_date,
         tarif_service__categorie='MULTISERVICE',
         tarif_service__nom_service__icontains='photocopie'
     ).aggregate(total=Sum('quantite'))['total'] or 0
 
-    documents_imprimes = impressions + photocopies
+    # Photocopies groupées
+    photocopies_lv = LigneDeVente.objects.filter(
+        vente__transaction__date_transaction__date__gte=start_date,
+        vente__transaction__date_transaction__date__lte=end_date,
+        tarif_service__categorie='MULTISERVICE',
+        tarif_service__nom_service__icontains='photocopie'
+    ).aggregate(total=Sum('quantite'))['total'] or 0
 
-    # 2. Services populaires
-    services_populaires = ServicePersonnalise.objects.filter(
+    documents_imprimes = impressions_sp + impressions_lv + photocopies_sp + photocopies_lv
+
+    # 2. Services populaires (Services + Ventes Groupées + Vente de produits)
+    # On utilise un dictionnaire pour regrouper par nom car un même service peut être dans plusieurs tables
+    popular_dict = {}
+
+    # Données des services individuels
+    services_sp = ServicePersonnalise.objects.filter(
         transaction__date_transaction__date__gte=start_date,
         transaction__date_transaction__date__lte=end_date,
-        usage_interne=False # Exclure l'usage interne des services populaires
-    ).values(
-        'tarif_service__nom_service',
-        'tarif_service__categorie'
-    ).annotate(
-        total_montant=Sum('transaction__montant'),
-        nombre_transactions=Count('id')
-    ).order_by('-total_montant')[:5]
+        usage_interne=False
+    ).values(name=F('tarif_service__nom_service')).annotate(
+        total=Sum('transaction__montant'),
+        count=Count('id')
+    )
+
+    # Données des ventes groupées (Multiservice)
+    services_lv = LigneDeVente.objects.filter(
+        vente__transaction__date_transaction__date__gte=start_date,
+        vente__transaction__date_transaction__date__lte=end_date,
+        usage_interne=False
+    ).values(name=F('tarif_service__nom_service')).annotate(
+        total=Sum('montant_total'),
+        count=Count('id')
+    )
+
+    # Données des ventes de produits directes
+    produits_vp = VenteProduit.objects.filter(
+        transaction__date_transaction__date__gte=start_date,
+        transaction__date_transaction__date__lte=end_date,
+        usage_interne=False
+    ).values(name=F('produit__designation')).annotate(
+        total=Sum('transaction__montant'),
+        count=Count('id')
+    )
+
+    # Consolidation dans le dictionnaire
+    for dataset in [services_sp, services_lv, produits_vp]:
+        for item in dataset:
+            name = item['name']
+            if name in popular_dict:
+                popular_dict[name]['total_montant'] += item['total'] or 0
+                popular_dict[name]['nombre_transactions'] += item['count'] or 0
+            else:
+                popular_dict[name] = {
+                    'tarif_service__nom_service': name,
+                    'total_montant': item['total'] or 0,
+                    'nombre_transactions': item['count'] or 0
+                }
+
+    # Tri par montant total et limitation au top 5
+    services_populaires = sorted(
+        popular_dict.values(),
+        key=lambda x: x['total_montant'],
+        reverse=True
+    )[:5]
 
     # 3. Activité récente
     activite_recente = Transaction.objects.filter(
@@ -439,7 +506,13 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
     """ViewSet pour gérer les profils utilisateurs"""
     queryset = ProfilUtilisateur.objects.all()
     pagination_class = StandardResultsSetPagination
-    permission_classes = [lambda: CustomPermission('manage_users')]
+    
+    def get_permissions(self):
+        # Permettre l'accès à mon_profil et à la modification de son propre profil
+        if self.action in ['mon_profil', 'update', 'partial_update']:
+            return [IsAuthenticated()]
+        # Les autres actions nécessitent manage_users par défaut
+        return [CustomPermission('manage_users')]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -471,6 +544,22 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
             )
         
         return queryset.order_by('user__username')
+
+    def update(self, request, *args, **kwargs):
+        """Autoriser un utilisateur à modifier son propre profil"""
+        instance = self.get_object()
+        
+        # Vérifier si c'est l'utilisateur lui-même ou s'il a la permission manage_users
+        if not request.user.is_superuser and request.user.profil.id != instance.id:
+            # Re-vérifier la permission manage_users car on a assoupli get_permissions
+            if not request.user.profil.a_permission('manage_users'):
+                return Response({'error': "Vous n'êtes pas autorisé à modifier ce profil."}, 
+                              status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
 
 
 
@@ -542,16 +631,23 @@ class ProfilUtilisateurViewSet(viewsets.ModelViewSet):
             'permissions_effectives': profil.obtenir_toutes_permissions()
         })
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get', 'patch', 'put'], permission_classes=[IsAuthenticated])
     def mon_profil(self, request):
-        """Obtenir le profil de l'utilisateur connecté"""
-        if hasattr(request.user, 'profil'):
-            serializer = self.get_serializer(request.user.profil)
-            return Response(serializer.data)
-        else:
-            return Response({
-                'error': 'Profil non trouvé'
-            }, status=status.HTTP_404_NOT_FOUND)
+        """Obtenir ou mettre à jour le profil de l'utilisateur connecté"""
+        if not hasattr(request.user, 'profil'):
+            return Response({'error': 'Profil non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            
+        profil = request.user.profil
+        
+        if request.method in ['PATCH', 'PUT']:
+            serializer = self.get_serializer(profil, data=request.data, partial=(request.method == 'PATCH'))
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer = self.get_serializer(profil)
+        return Response(serializer.data)
 
 # Create your views here.
 

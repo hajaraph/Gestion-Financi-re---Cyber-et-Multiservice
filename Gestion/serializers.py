@@ -239,9 +239,10 @@ class VenteProduitCreateSerializer(serializers.ModelSerializer):
             })
 
         # Vérifier que le prix est cohérent avec le prix de vente du produit
-        if prix_unitaire <= 0:
+        usage_interne = data.get('usage_interne', False)
+        if not usage_interne and (prix_unitaire is None or prix_unitaire <= 0):
             raise serializers.ValidationError({
-                'prix_unitaire': "Le prix unitaire doit être supérieur à 0"
+                'prix_unitaire': "Le prix unitaire doit être supérieur à 0 pour une vente standard"
             })
 
         return data
@@ -516,10 +517,11 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
-    email = serializers.CharField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
-    is_superuser = serializers.BooleanField(source='user.is_superuser', read_only=True) # Ajout de is_superuser
+    email = serializers.EmailField(required=False)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    is_superuser = serializers.BooleanField(source='user.is_superuser', read_only=True)
     role_nom = serializers.CharField(source='role.nom', read_only=True)
     permissions_effectives = serializers.SerializerMethodField()
     peut_travailler = serializers.ReadOnlyField(source='peut_travailler_maintenant')
@@ -527,7 +529,7 @@ class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfilUtilisateur
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name', 'is_superuser', # Ajout de is_superuser
+            'id', 'username', 'email', 'first_name', 'last_name', 'password', 'is_superuser',
             'role', 'role_nom', 'permissions_supplementaires', 'permissions_refusees',
             'telephone', 'poste', 'actif', 'heure_debut_travail', 'heure_fin_travail',
             'jours_travail', 'permissions_effectives', 'peut_travailler',
@@ -538,12 +540,47 @@ class ProfilUtilisateurSerializer(serializers.ModelSerializer):
     def get_permissions_effectives(obj):
         return obj.obtenir_toutes_permissions()
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Mapper les données de l'utilisateur Django vers le profil pour le frontend
+        if instance.user:
+            ret['email'] = instance.user.email
+            ret['first_name'] = instance.user.first_name
+            ret['last_name'] = instance.user.last_name
+        return ret
+
     def update(self, instance, validated_data):
+        # Extraire les données utilisateur
+        email = validated_data.pop('email', None)
+        first_name = validated_data.pop('first_name', None)
+        last_name = validated_data.pop('last_name', None)
+        password = validated_data.pop('password', None)
+
         # Extraire les permissions pour gestion manuelle des conflits
         perms_supp = validated_data.get('permissions_supplementaires')
         perms_ref = validated_data.get('permissions_refusees')
 
-        # Mise à jour standard
+        # Mise à jour de l'utilisateur Django
+        user = instance.user
+        user_changed = False
+        
+        if email is not None:
+            user.email = email
+            user_changed = True
+        if first_name is not None:
+            user.first_name = first_name
+            user_changed = True
+        if last_name is not None:
+            user.last_name = last_name
+            user_changed = True
+        if password:
+            user.set_password(password)
+            user_changed = True
+        
+        if user_changed:
+            user.save()
+
+        # Mise à jour standard du profil
         instance = super().update(instance, validated_data)
 
         # Gestion des conflits : une permission ne peut pas être à la fois supplémentaire et refusée

@@ -140,7 +140,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-2xl lg:rounded-3xl shadow-2xl max-w-4xl w-full h-full lg:h-auto lg:max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 lg:slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <h3 className="text-xl font-bold text-gray-900">Nouvelle Vente Groupée</h3>
                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors" disabled={isSubmitting}>
@@ -235,14 +235,14 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                                             {ligne.usage_interne ? '0' : (ligne.quantite * ligne.prix_unitaire).toLocaleString('fr-FR')} Ar
                                         </div>
                                     </div>
-                                    <div className="md:col-span-12 flex justify-end pb-1">
+                                    <div className="md:col-span-12 flex justify-end pb-1 border-t border-gray-50 mt-2 pt-2 md:border-none md:mt-0 md:pt-0">
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveLigne(ligne.id)}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold"
                                             title="Supprimer la ligne"
                                         >
-                                            <FaTrash />
+                                            <FaTrash className="md:text-base" /> <span className="md:hidden">Supprimer cette ligne</span>
                                         </button>
                                     </div>
                                 </div>
@@ -273,9 +273,9 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                 </div>
             </form >
 
-            <div className="p-8 border-t border-gray-100 bg-gray-50/50">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="text-3xl font-black text-blue-600">
+            <div className="p-4 sm:p-8 border-t border-gray-100 bg-gray-50/50">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 lg:gap-6">
+                    <div className="text-xl sm:text-3xl font-black text-blue-600">
                         Total: {total.toLocaleString('fr-FR')} Ar
                     </div>
                     <div className="flex gap-4 w-full md:w-auto">
@@ -357,7 +357,12 @@ const Multiservice = () => {
         // On demande une grande page_size pour être sûr d'avoir tout
         const result = await tarifAPI.getAll({ actif: true, page_size: 200 });
         if (result.success) {
-            setTarifs(result.data.results || result.data);
+            const data = result.data.results || result.data;
+            // Trier les tarifs par ordre alphabétique
+            const sortedTarifs = [...data].sort((a, b) =>
+                a.nom_service.localeCompare(b.nom_service)
+            );
+            setTarifs(sortedTarifs);
         }
     }, []);
 
@@ -437,24 +442,24 @@ const Multiservice = () => {
                 </div>
             )}
 
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Ventes Multiservices</h1>
-                <p className="text-gray-600">Historique et enregistrement des ventes groupées.</p>
+            <div className="mb-6 lg:mb-10">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Ventes Multiservices</h1>
+                <p className="text-gray-600 text-sm sm:text-base">Historique et enregistrement des ventes groupées.</p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-2xl shadow">
-                    <div className="text-gray-500 text-sm">Total Vendu (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold text-green-600">{stats.totalVendu.toLocaleString('fr-FR')} Ar</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Total Vendu (Aujourd'hui)</div>
+                    <div className="text-2xl font-black text-green-600">{stats.totalVendu.toLocaleString('fr-FR')} Ar</div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl shadow">
-                    <div className="text-gray-500 text-sm">Nombre de Ventes (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold">{stats.nombreVentes}</div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Nombre de Ventes (Aujourd'hui)</div>
+                    <div className="text-2xl font-black text-gray-800">{stats.nombreVentes}</div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl shadow">
-                    <div className="text-gray-500 text-sm">Top Service (Aujourd'hui)</div>
-                    <div className="text-2xl font-bold truncate">{stats.serviceTop}</div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 sm:col-span-2 lg:col-span-1">
+                    <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Top Service (Aujourd'hui)</div>
+                    <div className="text-2xl font-black text-blue-600 truncate">{stats.serviceTop}</div>
                 </div>
             </div>
 
@@ -472,12 +477,12 @@ const Multiservice = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => { loadData(currentPage, searchTerm); loadStats(); }}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold"
+                        className="px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold"
                         title="Actualiser"
                     >
                         Actualiser
                     </button>
-                    <button onClick={() => setShowModal(true)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold">
+                    <button onClick={() => setShowModal(true)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 font-bold">
                         <FaPlus /> Nouvelle Vente
                     </button>
                 </div>
@@ -487,7 +492,7 @@ const Multiservice = () => {
                 <TableLoader message="Chargement des ventes..." />
             ) : (
                 <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden sm:block">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
@@ -500,7 +505,7 @@ const Multiservice = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {ventes.map(vente => (
-                                    <tr key={vente.id} className="hover:bg-gray-50">
+                                    <tr key={vente.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(vente.date_creation).toLocaleString('fr-FR')}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{vente.client_nom || 'N/A'}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
@@ -522,26 +527,57 @@ const Multiservice = () => {
                                 ))}
                             </tbody>
                         </table>
-                        {ventes.length === 0 && (
-                            <EmptyState message="Aucune vente trouvée" />
-                        )}
-
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={totalItems}
-                            itemsPerPage={itemsPerPage}
-                            onPageChange={onPageChange}
-                            onPerPageChange={(value) => {
-                                setItemsPerPage(value);
-                                setCurrentPage(1);
-                            }}
-                        />
                     </div>
+
+                    {/* Version Mobile des cartes */}
+                    <div className="sm:hidden divide-y divide-gray-100">
+                        {ventes.map(vente => (
+                            <div key={vente.id} className="p-4 active:bg-gray-50 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="font-bold text-gray-900">{vente.client_nom || 'Client Anonyme'}</p>
+                                        <p className="text-[10px] text-gray-400 uppercase font-medium">{new Date(vente.date_creation).toLocaleString('fr-FR')}</p>
+                                    </div>
+                                    <p className="font-black text-blue-600">{vente.transaction.montant.toLocaleString('fr-FR')} Ar</p>
+                                </div>
+                                <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg mb-3">
+                                    {vente.lignes.map(l => (
+                                        <span key={l.id} className={l.usage_interne ? "text-yellow-700 font-bold" : ""}>
+                                            {l.tarif_service_nom} (x{l.quantite}){l.usage_interne ? " [INT]" : ""}{', '}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => handlePrint(vente.id)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
+                                    >
+                                        <FaPrint /> Imprimer Facture
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {ventes.length === 0 && (
+                        <EmptyState message="Aucune vente trouvée" />
+                    )}
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={onPageChange}
+                        onPerPageChange={(value) => {
+                            setItemsPerPage(value);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
 
             {showModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-0 lg:p-4 animate-in fade-in duration-300">
                     <FormulaireVente onClose={() => setShowModal(false)} onSave={handleSave} tarifs={tarifs} isSubmitting={isSubmitting} />
                 </div>
             )}

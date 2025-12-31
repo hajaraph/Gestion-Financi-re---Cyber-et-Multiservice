@@ -38,11 +38,11 @@ const StatCard = ({ title, value, change, icon, currency = false, color }) => {
   const styles = colorStyles[color] || colorStyles.green;
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border-l-4 ${styles.border} transform hover:scale-105 transition-transform duration-300`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-md p-4 sm:p-5 xl:p-6 border-l-4 ${styles.border} transform hover:scale-105 transition-transform duration-300`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-          <p className={`text-2xl font-bold ${styles.text}`}>{currency ? formatCurrency(value) : value}</p>
+          <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+          <p className={`text-lg sm:text-2xl font-bold ${styles.text}`}>{currency ? formatCurrency(value) : value}</p>
           {change !== undefined && (
             <p className={`text-xs mt-1 ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {change.toFixed(2)}% vs hier
@@ -109,9 +109,9 @@ const FinancialSummaryCard = ({ title, value, color }) => {
   };
 
   return (
-    <div className={`text-center p-4 ${bgStyles[color]} rounded-2xl`}>
-      <h3 className={`text-lg font-semibold ${colorStyles[color]}`}>{title}</h3>
-      <p className={`text-3xl font-bold ${valueStyles[color]}`}>{formatCurrency(value)}</p>
+    <div className={`text-center p-3 sm:p-4 ${bgStyles[color]} rounded-2xl`}>
+      <h3 className={`text-sm sm:text-lg font-semibold ${colorStyles[color]}`}>{title}</h3>
+      <p className={`text-xl sm:text-3xl font-black ${valueStyles[color]}`}>{formatCurrency(value)}</p>
     </div>
   );
 };
@@ -207,8 +207,8 @@ const Dashboard = () => {
   const totalRevenue = popularServices.reduce((acc, service) => acc + service.total_montant, 0);
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
-      <header className="mb-8 flex justify-between items-center">
+    <div className="w-full max-w-[1600px] mx-auto animate-in fade-in slide-in-from-top-2 duration-300 ease-out p-4 sm:p-6">
+      <header className="mb-6 xl:mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
             Tableau de Bord
@@ -217,12 +217,12 @@ const Dashboard = () => {
             Bonjour, {user?.username || 'Utilisateur'} ! Voici la vue d'ensemble.
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           {['today', 'week', 'month'].map(period => (
             <button
               key={period}
               onClick={() => setTimeFilter(period)}
-              className={`px-4 py-2 rounded-2xl text-sm font-medium ${timeFilter === period ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'}`}
+              className={`px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold transition-all ${timeFilter === period ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-white hover:bg-gray-200'}`}
             >
               {period === 'today' ? 'Aujourd\'hui' : period === 'week' ? 'Semaine' : 'Mois'}
             </button>
@@ -231,7 +231,7 @@ const Dashboard = () => {
       </header>
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-8 mb-8 xl:mb-12">
         <StatCard title="Recettes" value={mainStats.recettes_jour.valeur} change={mainStats.recettes_jour.variation} currency icon={getIconForCategory(null, 'RECETTE')} color="green" />
         <StatCard title="Sessions Internet" value={mainStats.sessions_internet.valeur} icon={getIconForCategory('INTERNET')} color="blue" />
         <StatCard title="Documents Imprimés" value={mainStats.documents_imprimes.valeur} icon={getIconForCategory('IMPRESSION')} color="purple" />
@@ -239,26 +239,26 @@ const Dashboard = () => {
       </div>
 
       {/* Contenu principal en 2 colonnes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-10 mb-8 xl:mb-12">
         {/* Services les plus utilisés */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-5 sm:p-6 xl:p-8">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
             Services Populaires
           </h2>
           <div className="space-y-4">
-            {popularServices.length > 0 ? popularServices.map((service, index) => (
+            {popularServices.length > 0 ? popularServices.slice(0, 3).map((service, index) => (
               <PopularService key={index} service={service} totalRevenue={totalRevenue} />
             )) : <p className="text-gray-500">Aucun service utilisé pour cette période.</p>}
           </div>
         </div>
 
         {/* Activité récente */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-5 sm:p-6 xl:p-8">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
             Activité Récente
           </h2>
           <div className="space-y-4">
-            {recentActivity.length > 0 ? recentActivity.map((activity) => (
+            {recentActivity.length > 0 ? recentActivity.slice(0, 3).map((activity) => (
               <RecentActivity key={activity.id} activity={activity} />
             )) : <p className="text-gray-500">Aucune activité récente pour cette période.</p>}
           </div>
@@ -266,11 +266,11 @@ const Dashboard = () => {
       </div>
 
       {/* Résumé financier */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-5 sm:p-6 xl:p-8">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
           Résumé Financier
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-8">
           <FinancialSummaryCard title="Total Recettes" value={financialSummary.total_recettes} color="green" />
           <FinancialSummaryCard title="Total Dépenses" value={financialSummary.total_depenses} color="red" />
           <FinancialSummaryCard title="Bénéfice Net" value={financialSummary.benefice_net} color="blue" />

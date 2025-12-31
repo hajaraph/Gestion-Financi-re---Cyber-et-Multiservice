@@ -175,9 +175,9 @@ const DepensesPage = () => {
                 </div>
             )}
 
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Gestion des Dépenses</h1>
-                <p className="text-gray-600">Suivez toutes les sorties d'argent.</p>
+            <div className="mb-6 lg:mb-10">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Gestion des Dépenses</h1>
+                <p className="text-gray-600 text-sm sm:text-base">Suivez toutes les sorties d'argent.</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-8">
@@ -203,31 +203,55 @@ const DepensesPage = () => {
                 <TableLoader message="Chargement des dépenses..." />
             ) : (
                 <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {depenses.map(d => (
-                                <tr key={d.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{d.transaction.description}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{d.categorie_depense_display}</td>
-                                    <td className="px-6 py-4 text-right text-sm font-bold text-red-600">{d.transaction.montant.toLocaleString('fr-FR')} Ar</td>
-                                    <td className="px-6 py-4 text-right text-sm">
-                                        <button onClick={() => openEditModal(d)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"><FaEdit /></button>
-                                        <button onClick={() => requestDelete(d)} className="p-2 text-red-600 hover:bg-red-100 rounded-full"><FaTrash /></button>
-                                    </td>
+                    <div className="overflow-x-auto hidden sm:block">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {depenses.map(d => (
+                                    <tr key={d.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">{d.transaction.description}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">{d.categorie_depense_display}</td>
+                                        <td className="px-6 py-4 text-right text-sm font-bold text-red-600">{d.transaction.montant.toLocaleString('fr-FR')} Ar</td>
+                                        <td className="px-6 py-4 text-right text-sm">
+                                            <button onClick={() => openEditModal(d)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"><FaEdit /></button>
+                                            <button onClick={() => requestDelete(d)} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors"><FaTrash /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Version Mobile */}
+                    <div className="sm:hidden divide-y divide-gray-100">
+                        {depenses.map(d => (
+                            <div key={d.id} className="p-4 active:bg-gray-50 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="font-bold text-gray-900">{d.transaction.description}</p>
+                                        <p className="text-[10px] text-gray-400 uppercase font-medium">{new Date(d.transaction.date_transaction).toLocaleDateString('fr-FR')}</p>
+                                    </div>
+                                    <p className="font-black text-red-600">{d.transaction.montant.toLocaleString('fr-FR')} Ar</p>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-bold uppercase">{d.categorie_depense_display}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => openEditModal(d)} className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FaEdit /></button>
+                                        <button onClick={() => requestDelete(d)} className="p-2 bg-red-50 text-red-600 rounded-lg"><FaTrash /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                     {depenses.length === 0 && (
                         <EmptyState message="Aucune dépense trouvée" />
                     )}

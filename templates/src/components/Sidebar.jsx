@@ -5,8 +5,8 @@ import { useStockAlert } from '../context/StockAlertContext';
 import { FaBell, FaExclamationTriangle, FaTimesCircle, FaCheckCircle } from 'react-icons/fa'; // Ajout d'icônes
 import Portal from './common/Portal'; // Importer le composant Portal
 
-const Sidebar = ({ user, onLogout }) => {
-  const [isOpen, setIsOpen] = useState(true);
+const Sidebar = ({ user, onLogout, isMobileOpen, setIsMobileOpen }) => {
+  const [isOpen, setIsOpen] = useState(window.innerWidth > 1024);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showStockAlerts, setShowStockAlerts] = useState(false);
   const [alertsPosition, setAlertsPosition] = useState({ top: 0, left: 0 });
@@ -188,162 +188,191 @@ const Sidebar = ({ user, onLogout }) => {
     return user?.username || 'Utilisateur';
   };
 
-  const handleLogoutClick = () => setShowLogoutModal(true);
+  const handleLogoutClick = () => {
+    if (window.innerWidth < 1024) setIsMobileOpen(false);
+    setShowLogoutModal(true);
+  };
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
     onLogout();
   };
   const handleCancelLogout = () => setShowLogoutModal(false);
-  const handleMenuClick = (path) => navigate(path);
+  const handleMenuClick = (path) => {
+    navigate(path);
+    if (window.innerWidth < 1024) setIsMobileOpen(false);
+  };
   const getActiveMenu = () => menuItems.find(item => item.path === location.pathname)?.id || 'dashboard';
 
   return (
-    <div className={`z-40 h-screen transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'} bg-gray-900 text-white flex flex-col`}>
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        {isOpen && <h2 className="text-xl font-bold text-blue-400">Cyber Café</h2>}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <button ref={bellIconRef} onClick={handleBellClick} className="p-2 rounded-lg hover:bg-gray-800 relative">
-              <FaBell className="w-5 h-5" />
-              {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">{totalAlerts}</span>
-              )}
-            </button>
-            {showStockAlerts && (
-              <Portal>
-                <div
-                  ref={alertsDropdownRef}
-                  style={{ top: `${alertsPosition.top}px`, left: `${alertsPosition.left}px` }}
-                  className="absolute w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200"
-                >
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-                      <FaBell className="mr-2 text-blue-500" /> Alertes de Stock
-                    </h3>
-                    <button onClick={() => setShowStockAlerts(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                  </div>
-                  <div className="max-h-60 overflow-y-auto py-2">
-                    {totalAlerts === 0 ? (
-                      <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center">
-                        <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-3">
-                          <FaCheckCircle className="text-green-500 w-6 h-6" />
+    <>
+      {/* Overlay pour mobile */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <div className={`fixed lg:relative z-50 lg:z-40 h-screen transition-all duration-300 ${isOpen || isMobileOpen ? 'w-64' : 'w-20'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} bg-gray-900 text-white flex flex-col shadow-2xl lg:shadow-none`}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            {(isOpen || isMobileOpen) && <h2 className="text-xl font-bold text-blue-400">Cyber Café</h2>}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button ref={bellIconRef} onClick={handleBellClick} className="p-2 rounded-lg hover:bg-gray-800 relative">
+                <FaBell className="w-5 h-5" />
+                {totalAlerts > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">{totalAlerts}</span>
+                )}
+              </button>
+              {showStockAlerts && (
+                <Portal>
+                  <div
+                    ref={alertsDropdownRef}
+                    style={{ top: `${alertsPosition.top}px`, left: `${alertsPosition.left}px` }}
+                    className="absolute w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200"
+                  >
+                    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                        <FaBell className="mr-2 text-blue-500" /> Alertes de Stock
+                      </h3>
+                      <button onClick={() => setShowStockAlerts(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto py-2">
+                      {totalAlerts === 0 ? (
+                        <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center">
+                          <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-3">
+                            <FaCheckCircle className="text-green-500 w-6 h-6" />
+                          </div>
+                          <span className="font-medium">Tout est en ordre !</span>
+                          <span className="text-xs mt-1">Aucune alerte de stock.</span>
                         </div>
-                        <span className="font-medium">Tout est en ordre !</span>
-                        <span className="text-xs mt-1">Aucune alerte de stock.</span>
-                      </div>
-                    ) : (
-                      <>
-                        {alerts.ruptures.length > 0 && (
-                          <div className="mb-2">
-                            <div className="flex items-center px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-700">
-                              <FaTimesCircle className="mr-2" /> Ruptures de Stock ({alerts.ruptures.length})
-                            </div>
-                            {alerts.ruptures.map(item => (
-                              <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <span>{item.nom_produit}</span>
-                                <span className="font-bold text-red-500">0 {item.unite_mesure_produit}</span>
+                      ) : (
+                        <>
+                          {alerts.ruptures.length > 0 && (
+                            <div className="mb-2">
+                              <div className="flex items-center px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-gray-700">
+                                <FaTimesCircle className="mr-2" /> Ruptures de Stock ({alerts.ruptures.length})
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        {alerts.seuils_bas.length > 0 && (
-                          <div>
-                            <div className="flex items-center px-4 py-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-gray-700">
-                              <FaExclamationTriangle className="mr-2" /> Seuils Bas Atteints ({alerts.seuils_bas.length})
+                              {alerts.ruptures.map(item => (
+                                <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                  <span>{item.nom_produit}</span>
+                                  <span className="font-bold text-red-500">0 {item.unite_mesure_produit}</span>
+                                </div>
+                              ))}
                             </div>
-                            {alerts.seuils_bas.map(item => (
-                              <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <span>{item.nom_produit}</span>
-                                <span className="font-bold text-yellow-500">{parseFloat(item.quantite_actuelle).toLocaleString()} {item.unite_mesure_produit}</span>
+                          )}
+                          {alerts.seuils_bas.length > 0 && (
+                            <div>
+                              <div className="flex items-center px-4 py-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-gray-700">
+                                <FaExclamationTriangle className="mr-2" /> Seuils Bas Atteints ({alerts.seuils_bas.length})
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
+                              {alerts.seuils_bas.map(item => (
+                                <div key={item.id} className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                  <span>{item.nom_produit}</span>
+                                  <span className="font-bold text-yellow-500">{parseFloat(item.quantite_actuelle).toLocaleString()} {item.unite_mesure_produit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={() => {
+                          setShowStockAlerts(false);
+                          navigate('/stock');
+                        }}
+                        className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 text-sm font-bold py-2.5 rounded-xl transition-all"
+                      >
+                        Voir toutes les alertes
+                      </button>
+                    </div>
                   </div>
-                  <div className="p-2 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => {
-                        setShowStockAlerts(false);
-                        navigate('/stock');
-                      }}
-                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 text-sm font-bold py-2.5 rounded-xl transition-all"
-                    >
-                      Voir toutes les alertes
-                    </button>
-                  </div>
-                </div>
-              </Portal>
+                </Portal>
+              )}
+            </div>
+            <button onClick={() => setIsOpen(!isOpen)} className="hidden lg:block p-2 rounded-lg hover:bg-gray-800" title={isOpen ? 'Réduire' : 'Agrandir'}>
+              {isOpen ? '←' : '→'}
+            </button>
+            {isMobileOpen && (
+              <button
+                onClick={() => setIsMobileOpen(false)}
+                className="lg:hidden p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                title="Fermer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             )}
           </div>
-          <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-gray-800" title={isOpen ? 'Réduire' : 'Agrandir'}>
-            {isOpen ? '←' : '→'}
-          </button>
         </div>
-      </div>
 
-      <nav className="flex-grow mt-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        <ul className="space-y-2 px-4">
-          {menuItems.map((item) => {
-            if (item.permission && !hasPermission(item.permission)) return null;
-            const isActive = getActiveMenu() === item.id;
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => handleMenuClick(item.path)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors group relative ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
-                  title={!isOpen ? item.name : ''}
-                >
-                  <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>{item.icon}</span>
-                  {isOpen && (
-                    <div className="ml-3 flex-1 min-w-0 text-left">
-                      <span className="font-medium block truncate">{item.name}</span>
-                      <span className={`text-xs block truncate ${isActive ? 'text-blue-100' : 'text-gray-400'}`}>{item.description}</span>
-                    </div>
-                  )}
-                  {!isOpen && (
-                    <div className="absolute left-full ml-4 bg-gray-800 text-white px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-gray-300">{item.description}</div>
-                    </div>
-                  )}
-                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+        <nav className="flex-grow mt-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <ul className="space-y-2 px-4">
+            {menuItems.map((item) => {
+              if (item.permission && !hasPermission(item.permission)) return null;
+              const isActive = getActiveMenu() === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => handleMenuClick(item.path)}
+                    className={`w-full flex items-center p-3 rounded-lg transition-colors group relative ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
+                    title={!isOpen ? item.name : ''}
+                  >
+                    <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>{item.icon}</span>
+                    {(isOpen || isMobileOpen) && (
+                      <div className="ml-3 flex-1 min-w-0 text-left">
+                        <span className="font-medium block truncate">{item.name}</span>
+                        <span className={`text-xs block truncate ${isActive ? 'text-blue-100' : 'text-gray-400'}`}>{item.description}</span>
+                      </div>
+                    )}
+                    {!(isOpen || isMobileOpen) && (
+                      <div className="absolute left-full ml-4 bg-gray-800 text-white px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-gray-300">{item.description}</div>
+                      </div>
+                    )}
+                    {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></div>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-      <div className="p-4 border-t border-gray-700">
-        <div className="flex items-center p-2 rounded-lg bg-gray-800">
-          <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-              {getInitials(user?.first_name, user?.last_name, user?.username)}
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex items-center p-2 rounded-lg bg-gray-800">
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                {getInitials(user?.first_name, user?.last_name, user?.username)}
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
+            {isOpen || isMobileOpen ? (
+              <div className="ml-3 flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
+                <p className="text-xs text-green-400">En ligne</p>
+              </div>
+            ) : null}
+            {isOpen || isMobileOpen ? (
+              <button className="ml-2 p-1 rounded hover:bg-gray-700" title="Déconnexion" onClick={handleLogoutClick}>
+                <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            ) : null}
           </div>
-          {isOpen && (
-            <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
-              <p className="text-xs text-green-400">En ligne</p>
-            </div>
-          )}
-          {isOpen && (
-            <button className="ml-2 p-1 rounded hover:bg-gray-700" title="Déconnexion" onClick={handleLogoutClick}>
-              <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-          )}
         </div>
-      </div>
 
-      <ConfirmModal isOpen={showLogoutModal} onClose={handleCancelLogout} onConfirm={handleConfirmLogout} title="Confirmer la déconnexion" message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter ?`} confirmText="Se déconnecter" cancelText="Annuler" type="warning" />
-    </div>
+        <ConfirmModal isOpen={showLogoutModal} onClose={handleCancelLogout} onConfirm={handleConfirmLogout} title="Confirmer la déconnexion" message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter ?`} confirmText="Se déconnecter" cancelText="Annuler" type="warning" />
+      </div>
+    </>
   );
 };
 

@@ -118,7 +118,12 @@ const VenteProduitPage = () => {
         ]);
         setCurrentPage(1);
       } else {
-        const errorMessage = result.error?.quantite || result.error?.detail || result.error?.non_field_errors || 'Erreur lors de la vente.';
+        const errorData = result.error || {};
+        const errorMessage = errorData.quantite ||
+          errorData.prix_unitaire ||
+          errorData.detail ||
+          errorData.non_field_errors ||
+          (typeof errorData === 'string' ? errorData : 'Erreur lors de la vente.');
         notify(errorMessage, 'error');
       }
     } finally {
@@ -134,7 +139,7 @@ const VenteProduitPage = () => {
 
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 sm:p-6 w-full max-w-[1600px] mx-auto animate-in fade-in duration-500">
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
           ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
@@ -148,14 +153,14 @@ const VenteProduitPage = () => {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Point de Vente Directe</h1>
-        <p className="text-gray-600">Vendez des produits instantanément et suivez vos stocks.</p>
+      <div className="mb-6 lg:mb-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Point de Vente Directe</h1>
+        <p className="text-gray-600 text-sm sm:text-base">Vendez des produits instantanément et suivez vos stocks.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
         {/* Colonne de sélection des produits */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[75vh]">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col min-h-[500px] lg:h-[75vh]">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <span className="w-2 h-6 bg-blue-600 rounded-full"></span>
             Produits en Stock
@@ -203,7 +208,7 @@ const VenteProduitPage = () => {
         </div>
 
         {/* Colonne des ventes récentes */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[75vh]">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col min-h-[500px] lg:h-[75vh]">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <span className="w-2 h-6 bg-green-600 rounded-full"></span>
             Historique des Ventes

@@ -3,3 +3,6 @@ dist
 .git
 .gitignore
 Dockerfile
+.dockerignore
+package-lock.json
+.bun-build

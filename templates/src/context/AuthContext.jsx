@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = React.useCallback(async () => {
     const profileResult = await profilAPI.getMyProfile();
     if (profileResult.success) {
       const fullUser = {
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     // Si le profil ne peut être chargé, on déconnecte
     logout();
     return false;
-  };
+  }, []);
 
   useEffect(() => {
     const verifyUser = async () => {
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     };
     verifyUser();
-  }, []);
+  }, [loadUserProfile]);
 
   const login = async (credentials) => {
     try {
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
         const { token } = response.data;
         localStorage.setItem('token', token);
         apiClient.defaults.headers.common['Authorization'] = `Token ${token}`;
-        
+
         // Après la connexion, charger le profil complet
         const profileLoaded = await loadUserProfile();
         if (profileLoaded) {
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         return { success: false, error: response.error };
       }
-        // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
     } catch (error) {
       return { success: false, error: 'Une erreur est survenue lors de la connexion.' };
     }
@@ -84,6 +84,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     logout,
+    refreshUser: loadUserProfile,
   };
 
   return (

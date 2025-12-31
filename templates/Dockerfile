@@ -1,14 +1,15 @@
-# Étape 1 : Construction de l'application React
-FROM node:20-alpine as build
+# Étape 1 : Construction de l'application React avec Bun
+FROM oven/bun:alpine as build
 
 # Définir le répertoire de travail
 WORKDIR /app
 
 # Copier les fichiers de dépendances
-COPY package.json package-lock.json* ./
+# Bun utilise bun.lock (ou bun.lockb)
+COPY package.json bun.lock* ./
 
-# Installer les dépendances
-RUN npm install
+# Installer les dépendances avec Bun
+RUN bun install --frozen-lockfile
 
 # Copier le reste des fichiers du projet
 COPY . .
@@ -17,8 +18,8 @@ COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-# Construire l'application pour la production
-RUN npm run build
+# Construire l'application pour la production avec Bun
+RUN bun run build
 
 # Étape 2 : Serveur Nginx pour servir les fichiers statiques
 FROM nginx:alpine
@@ -27,7 +28,6 @@ FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copier la configuration Nginx personnalisée
-# Le fichier nginx.conf est maintenant dans le dossier nginx/
 COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Exposer le port 80

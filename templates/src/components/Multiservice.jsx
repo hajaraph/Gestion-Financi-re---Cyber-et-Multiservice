@@ -279,11 +279,11 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                     <div className="text-xl sm:text-3xl font-black text-blue-600">
                         Total: {total.toLocaleString('fr-FR')} Ar
                     </div>
-                    <div className="flex gap-4 w-full md:w-auto">
+                    <div className="flex justify-end gap-3 w-full md:w-auto">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 md:flex-none px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                            className="px-8 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95 min-w-[100px]"
                             disabled={isSubmitting}
                         >
                             Annuler
@@ -291,7 +291,7 @@ const FormulaireVente = ({ onClose, onSave, tarifs, isSubmitting }) => {
                         <button
                             type="submit"
                             form="vente-form"
-                            className="flex-1 md:flex-none px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50"
+                            className="px-10 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50 min-w-[160px]"
                             disabled={isSubmitting}
                         >
                             <FaSave /> {isSubmitting ? 'Enregistrement...' : 'Enregistrer la Vente'}

@@ -637,18 +637,18 @@ const UserManagementPage = ({ user }) => { // Réception de l'objet user
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 p-8 border-t border-gray-100 bg-gray-50/50">
+              <div className="flex justify-end gap-3 p-8 border-t border-gray-100 bg-gray-50/50">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95"
+                  className="px-8 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95 min-w-[100px]"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-10 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-xl disabled:opacity-50 font-bold transition-all transform active:scale-95"
+                  className="px-10 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg disabled:opacity-50 font-bold transition-all transform active:scale-95 min-w-[140px]"
                 >
                   {isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}
                 </button>

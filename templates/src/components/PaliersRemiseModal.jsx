@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { palierRemiseAPI } from '../services/api';
 import { FaPlus, FaTrash, FaEdit, FaTimes, FaPercentage, FaMoneyBillWave, FaTag } from 'react-icons/fa';
 import NotificationIcon from './common/NotificationIcon';
@@ -19,13 +19,7 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
         date_fin: ''
     });
 
-    useEffect(() => {
-        if (isOpen && tarif) {
-            loadPaliers();
-        }
-    }, [isOpen, tarif]);
-
-    const loadPaliers = async () => {
+    const loadPaliers = useCallback(async () => {
         setLoading(true);
         try {
             const result = await palierRemiseAPI.getByTarif(tarif.id);
@@ -37,7 +31,13 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [tarif]);
+
+    useEffect(() => {
+        if (isOpen && tarif) {
+            loadPaliers();
+        }
+    }, [isOpen, tarif, loadPaliers]);
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
@@ -385,13 +385,13 @@ const PaliersRemiseModal = ({ isOpen, onClose, tarif }) => {
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all"
+                                    className="px-8 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95 min-w-[100px]"
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold transition-all transform active:scale-95"
+                                    className="px-10 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-bold transition-all transform active:scale-95 min-w-[120px]"
                                 >
                                     {editingPalier ? 'Modifier' : 'Créer'}
                                 </button>

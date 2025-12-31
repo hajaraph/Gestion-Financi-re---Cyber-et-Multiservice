@@ -92,16 +92,16 @@ const ConfirmModal = ({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-4 p-6 bg-gray-50/50 border-t border-gray-100">
+          <div className="flex justify-end gap-3 p-6 bg-gray-50/50 border-t border-gray-100">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 shadow-sm"
+              className="px-8 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-sm font-bold min-w-[100px]"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
-              className={`flex-[1.5] px-6 py-3.5 text-sm font-black text-white rounded-2xl shadow-lg transition-all transform active:scale-95 ${buttonClass}`}
+              className={`px-10 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all transform active:scale-95 ${buttonClass} min-w-[120px]`}
             >
               {confirmText}
             </button>

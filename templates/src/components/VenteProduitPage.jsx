@@ -142,8 +142,8 @@ const VenteProduitPage = () => {
   return (
     <div className="p-4 sm:p-6 w-full max-w-[1600px] mx-auto animate-in fade-in duration-500">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-md flex items-center justify-between gap-4 transition-all duration-300 transform animate-slide-in-right
-          ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text-white`}>
+        <div className={`fixed top - 4 right - 4 z - 50 p - 4 rounded - lg shadow - md flex items - center justify - between gap - 4 transition - all duration - 300 transform animate - slide -in -right
+          ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'info' ? 'bg-blue-500' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} text - white`}>
           <div className="flex items-center gap-2">
             <NotificationIcon type={notification.type} className="w-5 h-5" />
             <span>{notification.message}</span>
@@ -193,7 +193,7 @@ const VenteProduitPage = () => {
                         <p className="text-xs text-gray-500">{p.categorie_nom || p.reference}</p>
                       </div>
                       <div className="flex justify-between items-end">
-                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                        <span className={`text - [10px] font - black uppercase px - 2 py - 1 rounded - full ${p.stock.quantite_actuelle <= p.stock.quantite_minimale ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} `}>
                           {p.stock.quantite_actuelle} {p.unite_mesure_symbole}
                         </span>
                         <span className="text-blue-600 font-black text-lg">{p.prix_vente.toLocaleString('fr-FR')} Ar</span>
@@ -247,7 +247,7 @@ const VenteProduitPage = () => {
                           {sale.quantite}
                         </td>
                         <td className="px-4 py-4 text-right">
-                          <span className={`text-sm font-black ${sale.usage_interne ? 'text-gray-400' : 'text-gray-900'}`}>
+                          <span className={`text - sm font - black ${sale.usage_interne ? 'text-gray-400' : 'text-gray-900'} `}>
                             {sale.usage_interne ? '0' : (sale.quantite * sale.prix_unitaire).toLocaleString('fr-FR')} Ar
                           </span>
                         </td>
@@ -325,16 +325,31 @@ const VenteProduitPage = () => {
                   </div>
                 </div>
 
-                <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all border-2 ${usageInterne ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
-                  <input
-                    type="checkbox"
-                    checked={usageInterne}
-                    onChange={(e) => setUsageInterne(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <p className="font-bold text-gray-900">Usage Interne</p>
-                    <p className="text-xs text-gray-500 italic">Consommation propre (prix = 0 Ar)</p>
+                <label
+                  className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border-2 ${usageInterne
+                      ? 'bg-amber-50 border-amber-500 shadow-sm shadow-amber-100'
+                      : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                    }`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${usageInterne ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-500'
+                    }`}>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className={`font-bold ${usageInterne ? 'text-amber-900' : 'text-gray-900'}`}>Usage Interne</p>
+                      <input
+                        type="checkbox"
+                        checked={usageInterne}
+                        onChange={(e) => setUsageInterne(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 transition-all"
+                      />
+                    </div>
+                    <p className={`text-xs mt-0.5 ${usageInterne ? 'text-amber-700' : 'text-gray-500'}`}>
+                      Consommation propre à l'entreprise (Prix facturé = 0 Ar)
+                    </p>
                   </div>
                 </label>
 
@@ -357,11 +372,11 @@ const VenteProduitPage = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-2">
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-6 bg-gray-50/50 p-6 -mx-6 -mb-6">
                   <button
                     type="button"
                     onClick={() => setShowConfirmModal(false)}
-                    className="flex-1 px-4 py-4 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 font-bold transition-all active:scale-95"
+                    className="px-8 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-all shadow-sm active:scale-95 min-w-[100px]"
                     disabled={isSubmitting}
                   >
                     Annuler
@@ -369,7 +384,7 @@ const VenteProduitPage = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-[2] px-4 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-200 font-black transition-all transform active:scale-95 disabled:opacity-50"
+                    className="px-10 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-bold transition-all transform active:scale-95 disabled:opacity-50 min-w-[140px]"
                   >
                     {isSubmitting ? '...' : (usageInterne ? 'VALIDER INTERNE' : 'VALIDER LA VENTE')}
                   </button>

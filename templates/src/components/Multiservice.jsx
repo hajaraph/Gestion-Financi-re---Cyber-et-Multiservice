@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { tarifAPI, venteGroupeeAPI } from '../services/api';
+import Portal from './common/Portal';
 import NotificationIcon from './common/NotificationIcon';
 import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
@@ -577,9 +578,11 @@ const Multiservice = () => {
             )}
 
             {showModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-0 lg:p-4 animate-in fade-in duration-300">
-                    <FormulaireVente onClose={() => setShowModal(false)} onSave={handleSave} tarifs={tarifs} isSubmitting={isSubmitting} />
-                </div>
+                <Portal>
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-0 lg:p-4 animate-in fade-in duration-300">
+                        <FormulaireVente onClose={() => setShowModal(false)} onSave={handleSave} tarifs={tarifs} isSubmitting={isSubmitting} />
+                    </div>
+                </Portal>
             )}
         </div>
     );

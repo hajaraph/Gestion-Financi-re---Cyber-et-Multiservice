@@ -7,7 +7,6 @@ import Portal from './common/Portal'; // Importer le composant Portal
 
 const Sidebar = ({ user, onLogout, isMobileOpen, setIsMobileOpen }) => {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 1024);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showStockAlerts, setShowStockAlerts] = useState(false);
   const [alertsPosition, setAlertsPosition] = useState({ top: 0, left: 0 });
   const navigate = useNavigate();
@@ -190,13 +189,8 @@ const Sidebar = ({ user, onLogout, isMobileOpen, setIsMobileOpen }) => {
 
   const handleLogoutClick = () => {
     if (window.innerWidth < 1024) setIsMobileOpen(false);
-    setShowLogoutModal(true);
-  };
-  const handleConfirmLogout = () => {
-    setShowLogoutModal(false);
     onLogout();
   };
-  const handleCancelLogout = () => setShowLogoutModal(false);
   const handleMenuClick = (path) => {
     navigate(path);
     if (window.innerWidth < 1024) setIsMobileOpen(false);
@@ -354,23 +348,21 @@ const Sidebar = ({ user, onLogout, isMobileOpen, setIsMobileOpen }) => {
               </div>
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
             </div>
-            {isOpen || isMobileOpen ? (
+            {(isOpen || isMobileOpen) && (
               <div className="ml-3 flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{getDisplayName()}</p>
                 <p className="text-xs text-green-400">En ligne</p>
               </div>
-            ) : null}
-            {isOpen || isMobileOpen ? (
+            )}
+            {(isOpen || isMobileOpen) && (
               <button className="ml-2 p-1 rounded hover:bg-gray-700" title="Déconnexion" onClick={handleLogoutClick}>
                 <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </button>
-            ) : null}
+            )}
           </div>
         </div>
-
-        <ConfirmModal isOpen={showLogoutModal} onClose={handleCancelLogout} onConfirm={handleConfirmLogout} title="Confirmer la déconnexion" message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter ?`} confirmText="Se déconnecter" cancelText="Annuler" type="warning" />
       </div>
     </>
   );

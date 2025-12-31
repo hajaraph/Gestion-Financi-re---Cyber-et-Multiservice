@@ -12,6 +12,7 @@ import Multiservice from './components/Multiservice';
 import DepensesPage from './components/DepensesPage';
 import ParametresPage from './components/ParametresPage';
 import UserManagementPage from './components/UserManagementPage';
+import ConfirmModal from './components/ConfirmModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { StockAlertProvider } from './context/StockAlertContext';
 import PageWrapper from './components/common/PageWrapper';
@@ -27,6 +28,12 @@ const AppContent = () => {
   // Layout principal avec sidebar
   const MainLayout = ({ children }) => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const getDisplayName = () => {
+      if (user?.first_name && user?.last_name) return `${user.first_name} ${user.last_name}`;
+      return user?.username || 'Utilisateur';
+    };
 
     return (
       <div className="h-screen w-full bg-gray-50 dark:bg-gray-900 flex flex-col lg:flex-row overflow-hidden">
@@ -41,20 +48,38 @@ const AppContent = () => {
             </button>
             <h1 className="text-xl font-bold text-blue-400">Cyber Café</h1>
           </div>
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg active:scale-95 transition-transform"
+            title="Déconnexion"
+          >
             {user?.username?.charAt(0).toUpperCase() || 'U'}
-          </div>
+          </button>
         </header>
 
         <Sidebar
           user={user}
-          onLogout={logout}
+          onLogout={() => setShowLogoutModal(true)}
           isMobileOpen={isMobileOpen}
           setIsMobileOpen={setIsMobileOpen}
         />
         <main className="flex-1 p-4 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 relative h-full">
           {children}
         </main>
+
+        <ConfirmModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            setShowLogoutModal(false);
+            logout();
+          }}
+          title="Confirmer la déconnexion"
+          message={`${getDisplayName()}, êtes-vous sûr de vouloir vous déconnecter ?`}
+          confirmText="Se déconnecter"
+          cancelText="Annuler"
+          type="warning"
+        />
       </div>
     );
   };

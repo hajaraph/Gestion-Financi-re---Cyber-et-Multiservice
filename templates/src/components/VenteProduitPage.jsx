@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { produitAPI, venteProduitAPI } from '../services/api';
+import Portal from './common/Portal';
 import NotificationIcon from './common/NotificationIcon'; // Import du composant centralisé
 import TableLoader from './common/TableLoader';
 import EmptyState from './common/EmptyState';
@@ -277,104 +278,106 @@ const VenteProduitPage = () => {
 
       {/* Modal de confirmation de vente */}
       {showConfirmModal && selectedProduit && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Nouvelle Vente</h3>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
-                disabled={isSubmitting}
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <form onSubmit={handleVente} className="p-6 space-y-6">
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Produit sélectionné</p>
-                <p className="text-xl font-black text-blue-900 line-clamp-2">{selectedProduit.designation}</p>
-                <p className="text-sm font-medium text-blue-700 mt-1">
-                  Prix unit: {selectedProduit.prix_vente.toLocaleString('fr-FR')} Ar | Stock: {selectedProduit.stock.quantite_actuelle} {selectedProduit.unite_mesure_symbole}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Quantité</label>
-                  <input
-                    type="number"
-                    value={quantite}
-                    onChange={(e) => setQuantite(e.target.value)}
-                    min="1"
-                    max={selectedProduit.stock.quantite_actuelle}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-bold text-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Réduction (Ar)</label>
-                  <input
-                    type="number"
-                    value={remise}
-                    onChange={(e) => setRemise(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    disabled={usageInterne}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-red-600 font-bold text-lg disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all border-2 ${usageInterne ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
-                <input
-                  type="checkbox"
-                  checked={usageInterne}
-                  onChange={(e) => setUsageInterne(e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <div>
-                  <p className="font-bold text-gray-900">Usage Interne</p>
-                  <p className="text-xs text-gray-500 italic">Consommation propre (prix = 0 Ar)</p>
-                </div>
-              </label>
-
-              <div className="bg-gray-900 p-6 rounded-3xl text-white">
-                <div className="flex justify-between items-center opacity-60 text-xs mb-1">
-                  <span>SOUS-TOTAL</span>
-                  <span>{(selectedProduit.prix_vente * quantite).toLocaleString('fr-FR')} Ar</span>
-                </div>
-                {remise > 0 && !usageInterne && (
-                  <div className="flex justify-between items-center text-red-400 text-xs mb-4">
-                    <span>REMISE</span>
-                    <span>-{remise.toLocaleString('fr-FR')} Ar</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="font-bold">TOTAL À PAYER</span>
-                  <span className="text-3xl font-black text-blue-400">
-                    {usageInterne ? '0' : Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-2">
+        <Portal>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Nouvelle Vente</h3>
                 <button
-                  type="button"
                   onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 px-4 py-4 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 font-bold transition-all active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
                   disabled={isSubmitting}
                 >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-[2] px-4 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-200 font-black transition-all transform active:scale-95 disabled:opacity-50"
-                >
-                  {isSubmitting ? '...' : (usageInterne ? 'VALIDER INTERNE' : 'VALIDER LA VENTE')}
+                  <FaTimes />
                 </button>
               </div>
-            </form>
+              <form onSubmit={handleVente} className="p-6 space-y-6">
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                  <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Produit sélectionné</p>
+                  <p className="text-xl font-black text-blue-900 line-clamp-2">{selectedProduit.designation}</p>
+                  <p className="text-sm font-medium text-blue-700 mt-1">
+                    Prix unit: {selectedProduit.prix_vente.toLocaleString('fr-FR')} Ar | Stock: {selectedProduit.stock.quantite_actuelle} {selectedProduit.unite_mesure_symbole}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Quantité</label>
+                    <input
+                      type="number"
+                      value={quantite}
+                      onChange={(e) => setQuantite(e.target.value)}
+                      min="1"
+                      max={selectedProduit.stock.quantite_actuelle}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-bold text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Réduction (Ar)</label>
+                    <input
+                      type="number"
+                      value={remise}
+                      onChange={(e) => setRemise(parseFloat(e.target.value) || 0)}
+                      min="0"
+                      disabled={usageInterne}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-red-600 font-bold text-lg disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all border-2 ${usageInterne ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
+                  <input
+                    type="checkbox"
+                    checked={usageInterne}
+                    onChange={(e) => setUsageInterne(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <p className="font-bold text-gray-900">Usage Interne</p>
+                    <p className="text-xs text-gray-500 italic">Consommation propre (prix = 0 Ar)</p>
+                  </div>
+                </label>
+
+                <div className="bg-gray-900 p-6 rounded-3xl text-white">
+                  <div className="flex justify-between items-center opacity-60 text-xs mb-1">
+                    <span>SOUS-TOTAL</span>
+                    <span>{(selectedProduit.prix_vente * quantite).toLocaleString('fr-FR')} Ar</span>
+                  </div>
+                  {remise > 0 && !usageInterne && (
+                    <div className="flex justify-between items-center text-red-400 text-xs mb-4">
+                      <span>REMISE</span>
+                      <span>-{remise.toLocaleString('fr-FR')} Ar</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold">TOTAL À PAYER</span>
+                    <span className="text-3xl font-black text-blue-400">
+                      {usageInterne ? '0' : Math.max(0, (selectedProduit.prix_vente * quantite) - remise).toLocaleString('fr-FR')} Ar
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmModal(false)}
+                    className="flex-1 px-4 py-4 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 font-bold transition-all active:scale-95"
+                    disabled={isSubmitting}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-[2] px-4 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-200 font-black transition-all transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isSubmitting ? '...' : (usageInterne ? 'VALIDER INTERNE' : 'VALIDER LA VENTE')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );

@@ -769,6 +769,9 @@ class StockSerializer(serializers.ModelSerializer):
     code_produit = serializers.CharField(source='produit.reference', read_only=True, allow_null=True, default=None)
     description_produit = serializers.CharField(source='produit.description', read_only=True, allow_null=True, default=None)
     unite_mesure_produit = serializers.CharField(source='produit.unite_mesure.symbole', read_only=True, allow_null=True, default=None)
+    unite_achat_symbole = serializers.CharField(source='produit.unite_achat.symbole', read_only=True, allow_null=True, default=None)
+    quantite_par_unite_achat = serializers.DecimalField(source='produit.quantite_par_unite_achat', max_digits=10, decimal_places=2,
+                                                       read_only=True, allow_null=True, default=1)
     prix_unitaire_vente_produit = serializers.DecimalField(source='produit.prix_vente', max_digits=10, decimal_places=2,
                                                            read_only=True, allow_null=True, default=None)
 
@@ -785,7 +788,7 @@ class StockSerializer(serializers.ModelSerializer):
             'nom_produit', 'code_produit', 'description_produit',
             'quantite_actuelle', 'quantite_minimale', 'quantite_maximale',
             'prix_achat_moyen', 'etat', 'derniere_mise_a_jour', 'commentaire',
-            'unite_mesure_produit', 'prix_unitaire_vente_produit',
+            'unite_mesure_produit', 'unite_achat_symbole', 'quantite_par_unite_achat', 'prix_unitaire_vente_produit',
             'valeur_stock_achat', 'valeur_stock_vente',
             'est_en_rupture', 'necessite_reapprovisionnement'
         ]

@@ -146,7 +146,7 @@ class _StockEntryDialogState extends State<StockEntryDialog> {
                         'Conversion : 1 ${widget.stock.uniteAchatSymbole} = ${widget.stock.quantiteParUniteAchat.toStringAsFixed(0)} ${widget.stock.uniteMesureProduit}',
                         style: GoogleFonts.inter(
                           fontSize: 11,
-                          color: AppTheme.primaryBlue.withOpacity(0.8),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.8),
                         ),
                       ),
                     ],

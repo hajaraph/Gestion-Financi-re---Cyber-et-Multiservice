@@ -11,6 +11,7 @@ class TarifService {
   final String? uniteMesure;
   final bool actif;
   final List<Consommation> consommations;
+  final List<PalierRemise> paliersRemise;
   final int totalPaliers;
 
   TarifService({
@@ -23,8 +24,37 @@ class TarifService {
     this.uniteMesure,
     this.actif = true,
     this.consommations = const [],
+    this.paliersRemise = const [],
     this.totalPaliers = 0,
   });
+
+  /// Calcule le prix unitaire avec remise selon la quantité
+  /// Logique identique à calculatePriceWithDiscounts dans Multiservice.jsx
+  double calculerPrixAvecRemise(int quantite) {
+    if (paliersRemise.isEmpty) return prixUnitaire;
+
+    // Filtrer les paliers valides (actifs et quantité >= seuil)
+    final paliersValides =
+        paliersRemise.where((p) => p.actif && quantite >= p.qteSeuil).toList()
+          ..sort((a, b) => b.qteSeuil.compareTo(a.qteSeuil)); // Tri décroissant
+
+    if (paliersValides.isEmpty) return prixUnitaire;
+
+    // Prendre le meilleur palier (le plus avantageux = qteSeuil le plus élevé)
+    final bestPalier = paliersValides.first;
+
+    switch (bestPalier.typeRemise) {
+      case 'POURCENTAGE':
+        return prixUnitaire * (1 - bestPalier.valeurRemise / 100);
+      case 'MONTANT_FIXE':
+        final nouveauPrix = prixUnitaire - bestPalier.valeurRemise;
+        return nouveauPrix > 0 ? nouveauPrix : 0;
+      case 'PRIX_UNITAIRE':
+        return bestPalier.valeurRemise;
+      default:
+        return prixUnitaire;
+    }
+  }
 
   factory TarifService.fromJson(Map<String, dynamic> json) {
     return TarifService(
@@ -40,6 +70,11 @@ class TarifService {
       consommations:
           (json['consommations'] as List<dynamic>?)
               ?.map((e) => Consommation.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      paliersRemise:
+          (json['paliers_remise'] as List<dynamic>?)
+              ?.map((e) => PalierRemise.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
@@ -75,12 +110,14 @@ class PalierRemise {
   final int qteSeuil;
   final double valeurRemise;
   final String typeRemise;
+  final bool actif;
 
   PalierRemise({
     this.id,
     required this.qteSeuil,
     required this.valeurRemise,
     this.typeRemise = 'PRIX_UNITAIRE',
+    this.actif = true,
   });
 
   factory PalierRemise.fromJson(Map<String, dynamic> json) {
@@ -91,6 +128,7 @@ class PalierRemise {
         json['valeur_remise'] ?? json['nouveau_prix_unitaire'],
       ),
       typeRemise: json['type_remise']?.toString() ?? 'PRIX_UNITAIRE',
+      actif: json['actif'] ?? true,
     );
   }
 }

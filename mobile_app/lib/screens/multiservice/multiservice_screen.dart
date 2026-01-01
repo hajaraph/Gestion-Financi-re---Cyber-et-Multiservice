@@ -36,7 +36,9 @@ class _MultiserviceScreenState extends State<MultiserviceScreen> {
     final result = await multiserviceService.getTarifs();
     setState(() {
       if (result.success) {
-        _tarifs = result.tarifs;
+        // Trier les tarifs par ordre alphabétique (comme dans React)
+        _tarifs = result.tarifs
+          ..sort((a, b) => a.nomService.compareTo(b.nomService));
       }
     });
   }
@@ -440,12 +442,16 @@ class _VenteGroupeeFormState extends State<_VenteGroupeeForm> {
   }
 
   void _addLigne() {
+    final tarif = widget.tarifs.first;
+    final prixAvecRemise = tarif.calculerPrixAvecRemise(1);
     setState(() {
       _lignes.add(
         _LigneFormData(
-          tarifId: widget.tarifs.first.id,
-          nomService: widget.tarifs.first.nomService,
-          prixUnitaire: widget.tarifs.first.prixUnitaire,
+          tarif: tarif,
+          tarifId: tarif.id,
+          nomService: tarif.nomService,
+          prixUnitaireOriginal: tarif.prixUnitaire,
+          prixUnitaire: prixAvecRemise,
           quantite: 1,
         ),
       );
@@ -461,10 +467,24 @@ class _VenteGroupeeFormState extends State<_VenteGroupeeForm> {
 
   void _updateLigne(int index, int tarifId) {
     final tarif = widget.tarifs.firstWhere((t) => t.id == tarifId);
+    final prixAvecRemise = tarif.calculerPrixAvecRemise(
+      _lignes[index].quantite,
+    );
     setState(() {
+      _lignes[index].tarif = tarif;
       _lignes[index].tarifId = tarifId;
       _lignes[index].nomService = tarif.nomService;
-      _lignes[index].prixUnitaire = tarif.prixUnitaire;
+      _lignes[index].prixUnitaireOriginal = tarif.prixUnitaire;
+      _lignes[index].prixUnitaire = prixAvecRemise;
+    });
+  }
+
+  void _updateQuantite(int index, int quantite) {
+    final ligne = _lignes[index];
+    final prixAvecRemise = ligne.tarif.calculerPrixAvecRemise(quantite);
+    setState(() {
+      ligne.quantite = quantite;
+      ligne.prixUnitaire = prixAvecRemise;
     });
   }
 
@@ -650,7 +670,7 @@ class _VenteGroupeeFormState extends State<_VenteGroupeeForm> {
                   ligne: ligne,
                   tarifs: widget.tarifs,
                   onTarifChanged: (id) => _updateLigne(index, id),
-                  onQuantiteChanged: (q) => setState(() => ligne.quantite = q),
+                  onQuantiteChanged: (q) => _updateQuantite(index, q),
                   onUsageInterneChanged: (v) =>
                       setState(() => ligne.usageInterne = v),
                   onRemove: _lignes.length > 1
@@ -670,16 +690,23 @@ class _VenteGroupeeFormState extends State<_VenteGroupeeForm> {
 
 /// Données d'une ligne de formulaire
 class _LigneFormData {
+  TarifService tarif;
   int tarifId;
   String nomService;
+  double prixUnitaireOriginal;
   double prixUnitaire;
   int quantite;
   bool usageInterne = false;
   TextEditingController quantiteController;
 
+  /// Vérifie si une remise est actuellement appliquée
+  bool get hasRemise => prixUnitaire < prixUnitaireOriginal;
+
   _LigneFormData({
+    required this.tarif,
     required this.tarifId,
     required this.nomService,
+    required this.prixUnitaireOriginal,
     required this.prixUnitaire,
     required this.quantite,
   }) : quantiteController = TextEditingController(text: quantite.toString());
@@ -811,17 +838,21 @@ class _LigneFormWidget extends StatelessWidget {
                       fontSize: 14,
                     ),
                     floatingLabelStyle: GoogleFonts.inter(
-                      color: AppTheme.primaryBlue,
+                      color: ligne.hasRemise && !ligne.usageInterne
+                          ? Colors.purple
+                          : AppTheme.primaryBlue,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                     filled: true,
                     fillColor: ligne.usageInterne
                         ? Colors.amber.withValues(alpha: 0.1)
+                        : ligne.hasRemise
+                        ? Colors.purple.withValues(alpha: 0.1)
                         : AppTheme.primaryBlue.withValues(alpha: 0.1),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 16,
+                      vertical: 12,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -832,23 +863,47 @@ class _LigneFormWidget extends StatelessWidget {
                       borderSide: BorderSide(
                         color: ligne.usageInterne
                             ? Colors.amber.withValues(alpha: 0.3)
+                            : ligne.hasRemise
+                            ? Colors.purple.withValues(alpha: 0.3)
                             : AppTheme.primaryBlue.withValues(alpha: 0.1),
                       ),
                     ),
                   ),
-                  child: Text(
-                    formatCurrency(
-                      ligne.usageInterne
-                          ? 0
-                          : ligne.quantite * ligne.prixUnitaire,
-                    ),
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: ligne.usageInterne
-                          ? Colors.amber.shade700
-                          : AppTheme.primaryBlue,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Prix original barré si remise appliquée
+                      if (ligne.hasRemise && !ligne.usageInterne)
+                        Text(
+                          formatCurrency(
+                            ligne.quantite * ligne.prixUnitaireOriginal,
+                          ),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      // Prix final
+                      Text(
+                        formatCurrency(
+                          ligne.usageInterne
+                              ? 0
+                              : ligne.quantite * ligne.prixUnitaire,
+                        ),
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: ligne.usageInterne
+                              ? Colors.amber.shade700
+                              : ligne.hasRemise
+                              ? Colors.purple.shade700
+                              : AppTheme.primaryBlue,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

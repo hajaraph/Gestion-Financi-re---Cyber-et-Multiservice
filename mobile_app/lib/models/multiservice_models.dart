@@ -43,7 +43,10 @@ class TarifService {
     // Prendre le meilleur palier (le plus avantageux = qteSeuil le plus élevé)
     final bestPalier = paliersValides.first;
 
-    switch (bestPalier.typeRemise) {
+    // Convertir en majuscules pour comparaison insensible à la casse
+    final typeRemise = bestPalier.typeRemise.toUpperCase();
+
+    switch (typeRemise) {
       case 'POURCENTAGE':
         return prixUnitaire * (1 - bestPalier.valeurRemise / 100);
       case 'MONTANT_FIXE':
@@ -121,13 +124,18 @@ class PalierRemise {
   });
 
   factory PalierRemise.fromJson(Map<String, dynamic> json) {
+    final typeRemiseRaw = json['type_remise']?.toString().trim();
+
     return PalierRemise(
       id: parseInt(json['id']),
       qteSeuil: parseInt(json['quantite_minimum'] ?? json['seuil_quantite']),
       valeurRemise: parseDouble(
         json['valeur_remise'] ?? json['nouveau_prix_unitaire'],
       ),
-      typeRemise: json['type_remise']?.toString() ?? 'PRIX_UNITAIRE',
+      // Utiliser MONTANT_FIXE par défaut (comme le backend Django)
+      typeRemise: (typeRemiseRaw?.isNotEmpty == true)
+          ? typeRemiseRaw!
+          : 'MONTANT_FIXE',
       actif: json['actif'] ?? true,
     );
   }

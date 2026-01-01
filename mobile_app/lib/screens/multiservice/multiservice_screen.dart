@@ -852,7 +852,7 @@ class _LigneFormWidget extends StatelessWidget {
                         : AppTheme.primaryBlue.withValues(alpha: 0.1),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 12,
+                      vertical: 16,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -869,21 +869,25 @@ class _LigneFormWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
+                  child: Stack(
+                    alignment: Alignment.centerRight,
+                    clipBehavior: Clip.none,
                     children: [
-                      // Prix original barré si remise appliquée
+                      // Prix original barré si remise (positionné au-dessus)
                       if (ligne.hasRemise && !ligne.usageInterne)
-                        Text(
-                          formatCurrency(
-                            ligne.quantite * ligne.prixUnitaireOriginal,
-                          ),
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
-                            decoration: TextDecoration.lineThrough,
+                        Positioned(
+                          top: -14,
+                          right: 0,
+                          child: Text(
+                            formatCurrency(
+                              ligne.quantite * ligne.prixUnitaireOriginal,
+                            ),
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade500,
+                              decoration: TextDecoration.lineThrough,
+                            ),
                           ),
                         ),
                       // Prix final
